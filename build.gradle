@@ -147,7 +147,7 @@ versions << [
 
 dependencies {
   api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-  runtimeOnly "com.google.api.grpc:proto-google-common-protos:2.54.1"
+  runtimeOnly "com.google.api.grpc:proto-google-common-protos:2.59.2"
   runtimeOnly "com.google.guava:failureaccess:1.0.3"
   runtimeOnly "com.google.guava:guava:${versions.guava}"
   runtimeOnly "com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava"
