@@ -54,7 +54,7 @@ public class ClusterManagerActionFilter implements ActionFilter {
         }
         if (request instanceof ClusterManagerNodeReadRequest<?> r) {
             r.local(true);
-        } else if (request instanceof ClusterManagerNodeRequest<?> r) {
+        } else if (request instanceof ClusterManagerNodeRequest<?>) {
             listener.onFailure(
                 new OpenSearchStatusException("Cannot execute action {} on clusterless node", RestStatus.BAD_REQUEST, action)
             );
