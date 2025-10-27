@@ -14,6 +14,7 @@ import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.SnapshotsInProgress;
 import org.opensearch.cluster.routing.ShardRouting;
+import org.opensearch.cluster.service.ClusterApplier;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
@@ -52,12 +53,23 @@ public class TransportNodeSnapshotAction extends HandledTransportAction<NodeSnap
         this.threadPool = threadPool;
     }
 
+
     @Override
     protected void doExecute(Task task, NodeSnapshotRequest request, ActionListener<NodeSnapshotResponse> listener) {
         repositoriesService.getRepositoryData(request.getRepository(), ActionListener.delegateFailure(listener, (l,r)-> {
             Function<ClusterState, ClusterState> startSnapshotFunction = cs -> startSnapshots(cs, request, r);
             clusterService.getClusterApplierService().updateClusterState("snapshot started", startSnapshotFunction,
-                    (s, e) -> l.onFailure(e));
+                    new ClusterApplier.ClusterApplyListener() {
+                        @Override
+                        public void onSuccess(String source) {
+                            l.onResponse(new NodeSnapshotResponse());
+                        }
+
+                        @Override
+                        public void onFailure(String source, Exception e) {
+                            l.onFailure(e);
+                        }
+                    });
         }));
     }
 

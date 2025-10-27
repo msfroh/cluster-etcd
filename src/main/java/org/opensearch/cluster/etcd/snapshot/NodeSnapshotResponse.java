@@ -18,18 +18,20 @@ import java.io.IOException;
 
 public class NodeSnapshotResponse extends ActionResponse implements ToXContentObject {
 
+    public NodeSnapshotResponse() {
+        super();
+    }
 
-    public NodeSnapshotResponse(StreamInput streamInput) {
-
+    public NodeSnapshotResponse(StreamInput streamInput) throws IOException {
+        super(streamInput);
     }
 
     @Override
     public void writeTo(StreamOutput streamOutput) throws IOException {
-
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder xContentBuilder, Params params) throws IOException {
-        return null;
+        return xContentBuilder.startObject().endObject();
     }
 }

@@ -6,5 +6,5 @@ package org.opensearch.cluster.etcd.changeapplier;
 
 import java.util.Map;
 
-public record IndexMetadataComponents(Map<String, Object> settings, Map<String, Object> mappings, Map<String, Object> additionalMetadata) {
+public record IndexMetadataComponents(String indexName, Map<String, Object> settings, Map<String, Object> mappings, Map<String, Object> additionalMetadata) {
 }

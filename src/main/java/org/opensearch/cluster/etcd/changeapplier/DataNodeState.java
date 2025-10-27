@@ -10,6 +10,8 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.metadata.Metadata;
+import org.opensearch.cluster.metadata.RepositoriesMetadata;
+import org.opensearch.cluster.metadata.RepositoryMetadata;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.routing.IndexRoutingTable;
@@ -31,8 +33,10 @@ import org.opensearch.index.mapper.MapperService;
 import org.opensearch.indices.IndicesService;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -43,19 +47,22 @@ import java.util.stream.Collectors;
 public class DataNodeState extends NodeState {
     private static final Logger logger = LogManager.getLogger(DataNodeState.class);
 
-    private final Map<String, IndexMetadataComponents> indices;
+    private final Collection<IndexMetadataComponents> indices;
     private final Map<String, Set<DataNodeShard>> assignedShards;
+    private final Collection<RepositorySettings> repositorySettings;
 
     public DataNodeState(
-        DiscoveryNode localNode,
-        Map<String, IndexMetadataComponents> indices,
-        Map<String, Set<DataNodeShard>> assignedShards
+            DiscoveryNode localNode,
+            Collection<IndexMetadataComponents> indices,
+            Map<String, Set<DataNodeShard>> assignedShards,
+            Collection<RepositorySettings> repositorySettings
     ) {
         super(localNode);
         // The index metadata and shard assignment should be identical
-        assert indices.keySet().equals(assignedShards.keySet());
+        assert indices.size() == assignedShards.size();
         this.indices = indices;
         this.assignedShards = assignedShards;
+        this.repositorySettings = repositorySettings;
     }
 
     /**
@@ -65,7 +72,7 @@ public class DataNodeState extends NodeState {
      * @param dataNodeShard the DataNodeShard containing all necessary information
      * @return the recovery source to use for this shard
      */
-    private RecoverySource determineRecoverySource(DataNodeShard dataNodeShard) {
+    private static RecoverySource determineRecoverySource(DataNodeShard dataNodeShard) {
         String indexName = dataNodeShard.getIndexName();
         int shardNum = dataNodeShard.getShardNum();
         ShardRole role = dataNodeShard.getShardRole();
@@ -88,10 +95,10 @@ public class DataNodeState extends NodeState {
         String previousAllocationId = dataNodeShard.getAllocationId();
         if (previousAllocationId != null) {
             logger.info(
-                "Primary shard {}[{}] was previously allocated (ID: {}), using ExistingStoreRecoverySource",
-                indexName,
-                shardNum,
-                previousAllocationId
+                    "Primary shard {}[{}] was previously allocated (ID: {}), using ExistingStoreRecoverySource",
+                    indexName,
+                    shardNum,
+                    previousAllocationId
             );
             return RecoverySource.ExistingStoreRecoverySource.INSTANCE;
         } else {
@@ -112,18 +119,34 @@ public class DataNodeState extends NodeState {
             IndexMetadata indexMetadata = indexService.getMetadata();
             try (MapperService mapperService = indicesService.createIndexMapperService(indexMetadata)) {
                 DocumentMapper existingDocumentMapper = mapperService.documentMapperParser()
-                    .parse(MapperService.SINGLE_MAPPING_NAME, indexMetadata.mapping().source());
+                        .parse(MapperService.SINGLE_MAPPING_NAME, indexMetadata.mapping().source());
                 DocumentMapper newDocumentMapper = mapperService.documentMapperParser()
-                    .parse(MapperService.SINGLE_MAPPING_NAME, newMapping);
+                        .parse(MapperService.SINGLE_MAPPING_NAME, newMapping);
                 DocumentMapper mergedDocumentMapper = existingDocumentMapper.merge(
-                    newDocumentMapper.mapping(),
-                    MapperService.MergeReason.MAPPING_UPDATE
+                        newDocumentMapper.mapping(),
+                        MapperService.MergeReason.MAPPING_UPDATE
                 );
                 return mergedDocumentMapper.mappingSource();
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to parse mapping for index " + index.getName(), e);
         }
+    }
+
+    private static RepositoriesMetadata buildRepositoriesMetadata(
+            Collection<RepositorySettings> repositorySettingsCollection
+    ) {
+        if (repositorySettingsCollection == null) {
+            return null;
+        }
+        List<RepositoryMetadata> repositoryMetadata = repositorySettingsCollection.stream()
+                .map(repoSettings -> new RepositoryMetadata(
+                        repoSettings.name(),
+                        repoSettings.type(),
+                        Settings.builder().loadFromMap(repoSettings.settings()).build()
+                ))
+                .toList();
+        return new RepositoriesMetadata(repositoryMetadata);
     }
 
     @Override
@@ -135,21 +158,25 @@ public class DataNodeState extends NodeState {
         clusterStateBuilder.nodes(nodesBuilder);
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
         Metadata.Builder metadataBuilder = Metadata.builder();
-        for (Map.Entry<String, IndexMetadataComponents> entry : indices.entrySet()) {
-            Index index = new Index(entry.getKey(), entry.getKey());
+        RepositoriesMetadata repositoriesMetadata = buildRepositoriesMetadata(repositorySettings);
+        if (repositoriesMetadata != null) {
+            metadataBuilder.putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata);
+        }
+        for (IndexMetadataComponents entry : indices) {
+            Index index = new Index(entry.indexName(), entry.indexName());
             IndexMetadata oldIndexMetadata = previousState.metadata().index(index);
 
             IndexRoutingTable previousIndexRoutingTable = previousState.routingTable().index(index);
             IndexRoutingTable.Builder indexRoutingTableBuilder = IndexRoutingTable.builder(index);
-            IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(entry.getKey());
-            indexMetadataBuilder.putMapping(new MappingMetadata(canonicalMapping(index, entry.getValue().mappings(), indicesService)));
-            Settings.Builder settingsBuilder = ClusterStateUtils.initializeSettingsBuilder(entry.getKey(), entry.getValue().settings());
+            IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(entry.indexName());
+            indexMetadataBuilder.putMapping(new MappingMetadata(canonicalMapping(index, entry.mappings(), indicesService)));
+            Settings.Builder settingsBuilder = ClusterStateUtils.initializeSettingsBuilder(entry.indexName(), entry.settings());
             indexMetadataBuilder.settings(settingsBuilder);
 
             if (oldIndexMetadata != null) {
                 indexMetadataBuilder.version(oldIndexMetadata.getVersion())
-                    .settingsVersion(oldIndexMetadata.getSettingsVersion())
-                    .mappingVersion(oldIndexMetadata.getMappingVersion());
+                        .settingsVersion(oldIndexMetadata.getSettingsVersion())
+                        .mappingVersion(oldIndexMetadata.getMappingVersion());
             }
             for (DataNodeShard dataNodeShard : assignedShards.get(index.getName())) {
                 int shardNum = dataNodeShard.getShardNum();
@@ -159,8 +186,8 @@ public class DataNodeState extends NodeState {
 
                 IndexShardRoutingTable.Builder newShardRoutingTable = new IndexShardRoutingTable.Builder(shardId);
                 IndexShardRoutingTable previousShardRoutingTable = previousIndexRoutingTable == null
-                    ? new IndexShardRoutingTable.Builder(shardId).build()
-                    : previousIndexRoutingTable.shard(shardNum);
+                        ? new IndexShardRoutingTable.Builder(shardId).build()
+                        : previousIndexRoutingTable.shard(shardNum);
 
                 UnassignedInfo unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "created");
 
@@ -170,22 +197,22 @@ public class DataNodeState extends NodeState {
                     RemoteNode primaryNode = primaryAllocation.node();
 
                     if (previousShardRoutingTable.primaryShard() != null
-                        && previousShardRoutingTable.primaryShard().currentNodeId().equals(primaryNode.nodeId())) {
+                            && previousShardRoutingTable.primaryShard().currentNodeId().equals(primaryNode.nodeId())) {
                         newShardRoutingTable.addShard(previousShardRoutingTable.primaryShard());
                     } else {
                         ShardRouting primaryShardRouting = ShardRouting.newUnassigned(
-                            shardId,
-                            true,
-                            false,
-                            RecoverySource.ExistingStoreRecoverySource.INSTANCE,
-                            unassignedInfo
-                        )
-                            .initialize(
-                                primaryNode.nodeId(),
-                                primaryAllocation.allocationId(),
-                                ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE
-                            )
-                            .moveToStarted();
+                                        shardId,
+                                        true,
+                                        false,
+                                        RecoverySource.ExistingStoreRecoverySource.INSTANCE,
+                                        unassignedInfo
+                                )
+                                .initialize(
+                                        primaryNode.nodeId(),
+                                        primaryAllocation.allocationId(),
+                                        ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE
+                                )
+                                .moveToStarted();
                         // Add the primary shard routing to the index routing table
                         newShardRoutingTable.addShard(primaryShardRouting);
                     }
@@ -196,18 +223,18 @@ public class DataNodeState extends NodeState {
                 if (role == ShardRole.PRIMARY && dataNodeShard.getReplicaAssignments().isEmpty() == false) {
                     // If this is a primary, we need to add the replica shards
                     Map<String, DataNodeShard.ShardAllocation> replicaNodesMap = new HashMap<>(
-                        dataNodeShard.getReplicaAssignments()
-                            .stream()
-                            .collect(Collectors.toMap(k -> k.node().nodeId(), Function.identity()))
+                            dataNodeShard.getReplicaAssignments()
+                                    .stream()
+                                    .collect(Collectors.toMap(k -> k.node().nodeId(), Function.identity()))
                     );
                     for (DataNodeShard.ShardAllocation shardAllocation : replicaNodesMap.values()) {
                         RemoteNode replicaNode = shardAllocation.node();
                         ShardRouting replicaShardRouting = ShardRouting.newUnassigned(
-                            shardId,
-                            false,
-                            false,
-                            RecoverySource.PeerRecoverySource.INSTANCE,
-                            unassignedInfo
+                                shardId,
+                                false,
+                                false,
+                                RecoverySource.PeerRecoverySource.INSTANCE,
+                                unassignedInfo
                         ).initialize(replicaNode.nodeId(), shardAllocation.allocationId(), ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE);
                         if (shardAllocation.shardState() == DataNodeShard.ShardState.STARTED) {
                             inSyncAllocationIds.add(shardAllocation.allocationId());
@@ -220,8 +247,8 @@ public class DataNodeState extends NodeState {
                 }
 
                 Optional<ShardRouting> previouslyStartedShard = previousShardRoutingTable == null
-                    ? Optional.empty()
-                    : previousShardRoutingTable.shards()
+                        ? Optional.empty()
+                        : previousShardRoutingTable.shards()
                         .stream()
                         .filter(sr -> localNode.getId().equals(sr.currentNodeId()))
                         .filter(ShardRouting::started)
@@ -231,28 +258,28 @@ public class DataNodeState extends NodeState {
                 if (previouslyStartedShard.isPresent()) {
                     shardRouting = previouslyStartedShard.get();
                     logger.debug(
-                        "Reusing existing ShardRouting for shard {}[{}] with allocation ID {}",
-                        entry.getKey(),
-                        shardNum,
-                        shardRouting.allocationId().getId()
+                            "Reusing existing ShardRouting for shard {}[{}] with allocation ID {}",
+                            entry.indexName(),
+                            shardNum,
+                            shardRouting.allocationId().getId()
                     );
                 } else {
                     // No previous shard in cluster state - use ETCD-based allocation ID preservation
                     RecoverySource recoverySource = determineRecoverySource(dataNodeShard);
                     shardRouting = ShardRouting.newUnassigned(
-                        shardId,
-                        role == ShardRole.PRIMARY,
-                        role == ShardRole.SEARCH_REPLICA,
-                        recoverySource,
-                        unassignedInfo
+                            shardId,
+                            role == ShardRole.PRIMARY,
+                            role == ShardRole.SEARCH_REPLICA,
+                            recoverySource,
+                            unassignedInfo
                     );
 
                     // Determine recovery source for this shard
                     String previousAllocationId = dataNodeShard.getAllocationId();
                     shardRouting = shardRouting.initialize(
-                        localNode.getId(),
-                        previousAllocationId,
-                        ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE
+                            localNode.getId(),
+                            previousAllocationId,
+                            ShardRouting.UNAVAILABLE_EXPECTED_SHARD_SIZE
                     );
 
                     // ALLOCATION ID TRACKING: Log allocation ID changes for monitoring purposes
@@ -261,26 +288,26 @@ public class DataNodeState extends NodeState {
                     if (previousAllocationId != null) {
                         if (previousAllocationId.equals(currentAllocationId)) {
                             logger.info(
-                                "✅ ALLOCATION ID PRESERVED: shard {}[{}] kept allocation ID {}",
-                                entry.getKey(),
-                                shardNum,
-                                previousAllocationId
+                                    "✅ ALLOCATION ID PRESERVED: shard {}[{}] kept allocation ID {}",
+                                    dataNodeShard.getIndexName(),
+                                    dataNodeShard.getShardNum(),
+                                    previousAllocationId
                             );
                         } else {
                             logger.info(
-                                "🔄 ALLOCATION ID CHANGED: shard {}[{}] from {} to {}",
-                                entry.getKey(),
-                                shardNum,
-                                previousAllocationId,
-                                currentAllocationId
+                                    "🔄 ALLOCATION ID CHANGED: shard {}[{}] from {} to {}",
+                                    dataNodeShard.getIndexName(),
+                                    dataNodeShard.getShardNum(),
+                                    previousAllocationId,
+                                    currentAllocationId
                             );
                         }
                     } else {
                         logger.debug(
-                            "No previous allocation ID found for shard {}[{}], using new ID: {}",
-                            entry.getKey(),
-                            shardNum,
-                            currentAllocationId
+                                "No previous allocation ID found for shard {}[{}], using new ID: {}",
+                                entry.indexName(),
+                                shardNum,
+                                currentAllocationId
                         );
                     }
                 }

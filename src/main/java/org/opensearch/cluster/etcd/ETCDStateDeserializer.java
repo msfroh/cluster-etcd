@@ -18,6 +18,7 @@ import org.opensearch.cluster.etcd.changeapplier.IndexMetadataComponents;
 import org.opensearch.cluster.etcd.changeapplier.NodeShardAssignment;
 import org.opensearch.cluster.etcd.changeapplier.NodeState;
 import org.opensearch.cluster.etcd.changeapplier.RemoteNode;
+import org.opensearch.cluster.etcd.changeapplier.RepositorySettings;
 import org.opensearch.cluster.etcd.changeapplier.ShardRole;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.xcontent.XContentHelper;
@@ -39,8 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -167,7 +166,8 @@ public final class ETCDStateDeserializer {
                 etcdClient,
                 (Map<String, Map<String, Object>>) map.get("local_shards"),
                 clusterName,
-                isInitialLoad
+                isInitialLoad,
+                (Map<String, Map<String, Object>>) map.get("repositories")
             );
         } else if (map.containsKey("remote_shards")) {
             return readCoordinatorNodeState(localNode, etcdClient, (Map<String, Object>) map.get("remote_shards"), clusterName);
@@ -266,17 +266,17 @@ public final class ETCDStateDeserializer {
         return new NodeStateResult(coordinatorNodeState, keysToWatch);
     }
 
+    @SuppressWarnings("unchecked")
     private static NodeStateResult readDataNodeState(
         DiscoveryNode localNode,
         Client etcdClient,
         Map<String, Map<String, Object>> localShards,
         String clusterName,
-        boolean isInitialLoad
+        boolean isInitialLoad,
+        Map<String, Map<String, Object>> repositories
     ) throws IOException {
-        boolean converged = true;
         Set<String> pathsToWatch = new HashSet<>();
         Map<String, Set<DataNodeShard>> localShardAssignment = new HashMap<>();
-        Map<String, IndexMetadataComponents> indexMetadataMap = new HashMap<>();
 
         // Fetch allocation ID information on initial load
         Map<String, Map<Integer, String>> allocationInfoMap = new HashMap<>();
@@ -288,6 +288,7 @@ public final class ETCDStateDeserializer {
             LOGGER.debug("Skipping allocation info fetch for subsequent update");
         }
 
+        ArrayList<IndexMetadataComponents> indexMetadataComponents;
         try (KV kvClient = etcdClient.getKVClient()) {
             // Prepare futures for fetching settings and mappings separately
             List<CompletableFuture<GetResponse>> settingsFutures = new ArrayList<>();
@@ -318,12 +319,12 @@ public final class ETCDStateDeserializer {
                         allocationId = indexAllocationInfo.get(shardId);
                     }
                     DataNodeShardConvergence dataNodeShardConvergence = readDataNodeShard(
-                        indexName,
-                        shardId,
-                        shardEntry.getValue(),
-                        etcdClient,
-                        clusterName,
-                        allocationId
+                            indexName,
+                            shardId,
+                            shardEntry.getValue(),
+                            etcdClient,
+                            clusterName,
+                            allocationId
                     );
                     pathsToWatch.addAll(dataNodeShardConvergence.nonConvergedPaths());
                     if (dataNodeShardConvergence.shard() != null) {
@@ -337,15 +338,26 @@ public final class ETCDStateDeserializer {
                 }
             }
 
+            indexMetadataComponents = new ArrayList<>(indexNames.size());
             // Process the results
             for (int i = 0; i < indexNames.size(); i++) {
                 String indexName = indexNames.get(i);
-                IndexMetadataComponents indexMetadata = buildIndexMetadataFromSeparateParts(settingsFutures.get(i), mappingsFutures.get(i));
-                indexMetadataMap.put(indexName, indexMetadata);
+                indexMetadataComponents.add(buildIndexMetadataFromSeparateParts(indexName, settingsFutures.get(i), mappingsFutures.get(i)));
+            }
+        }
+        List<RepositorySettings> repositoriesSettings = null;
+        if (repositories != null) {
+            repositoriesSettings = new ArrayList<>(repositories.size());
+            for (Map.Entry<String, Map<String, Object>> entry : repositories.entrySet()) {
+                String repositoryName = entry.getKey();
+                Map<String, Object> repoConfig = entry.getValue();
+                String type = repoConfig.get("type").toString();
+                Map<String, Object> settings = (Map<String, Object>) repoConfig.get("settings");
+                repositoriesSettings.add(new RepositorySettings(repositoryName, type, settings));
             }
         }
 
-        return new NodeStateResult(new DataNodeState(localNode, indexMetadataMap, localShardAssignment), pathsToWatch);
+        return new NodeStateResult(new DataNodeState(localNode, indexMetadataComponents, localShardAssignment, repositoriesSettings), pathsToWatch);
     }
 
     private record DataNodeShardConvergence(DataNodeShard shard, Collection<String> nonConvergedPaths) {
@@ -541,6 +553,7 @@ public final class ETCDStateDeserializer {
      * Builds IndexMetadata from separate settings and mappings etcd responses.
      */
     private static IndexMetadataComponents buildIndexMetadataFromSeparateParts(
+            String indexName,
         CompletableFuture<GetResponse> settingsFuture,
         CompletableFuture<GetResponse> mappingsFuture
     ) {
@@ -568,23 +581,10 @@ public final class ETCDStateDeserializer {
                 true,
                 MediaTypeRegistry.JSON
             ).v2();
-            return new IndexMetadataComponents(settingsMap, mappingsMap, Collections.emptyMap());
+            return new IndexMetadataComponents(indexName, settingsMap, mappingsMap, Collections.emptyMap());
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException("Failed to fetch index metadata parts from etcd", e);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static SortedMap<String, Object> sortMapRecursively(Map<String, Object> inputMap) {
-        SortedMap<String, Object> sortedMap = new TreeMap<>();
-        for (Map.Entry<String, Object> entry : inputMap.entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof Map) {
-                value = sortMapRecursively((Map<String, Object>) value);
-            }
-            sortedMap.put(entry.getKey(), value);
-        }
-        return sortedMap;
     }
 
     private static Map<String, NodeHealthInfo> fetchNodeHealthInfo(Client etcdClient, Collection<String> nodeNames, String clusterName)
