@@ -61,7 +61,7 @@ allprojects {
 }
 
 // Configure the plugin subproject with OpenSearch-specific settings
-configure(project(':plugin')) {
+configure(List.of(project(':plugin'), project(':controller-plugin'))) {
     apply plugin: 'opensearch.opensearchplugin'
     apply plugin: 'opensearch.java-agent'
     apply plugin: 'com.diffplug.spotless'
