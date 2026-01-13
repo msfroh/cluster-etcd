@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -23,9 +19,18 @@ public class ClusterControllerAssignmentTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         ClusterControllerAssignment assignment = new ClusterControllerAssignment();
 
-        BytesReference bytesRef = XContentHelper.toXContent(assignment, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            assignment,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ClusterControllerAssignment deserializedAssignment = ClusterControllerAssignment.fromXContent(parser);
         assertEquals(assignment, deserializedAssignment);
     }
@@ -37,11 +42,19 @@ public class ClusterControllerAssignmentTests extends OpenSearchTestCase {
         assignment.setTimestamp(System.currentTimeMillis());
         assignment.setLease("lease-12345");
 
-        BytesReference bytesRef = XContentHelper.toXContent(assignment, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            assignment,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ClusterControllerAssignment deserializedAssignment = ClusterControllerAssignment.fromXContent(parser);
         assertEquals(assignment, deserializedAssignment);
     }
 }
-

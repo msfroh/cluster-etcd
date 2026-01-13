@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -23,9 +19,18 @@ public class TemplateRequestTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         TemplateRequest templateRequest = new TemplateRequest();
 
-        BytesReference bytesRef = XContentHelper.toXContent(templateRequest, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            templateRequest,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         TemplateRequest deserializedTemplateRequest = TemplateRequest.fromXContent(parser);
         assertEquals(templateRequest, deserializedTemplateRequest);
     }
@@ -33,11 +38,19 @@ public class TemplateRequestTests extends OpenSearchTestCase {
     public void testTemplateDefinitionSerializationEmpty() throws IOException {
         TemplateRequest.TemplateDefinition templateDefinition = new TemplateRequest.TemplateDefinition();
 
-        BytesReference bytesRef = XContentHelper.toXContent(templateDefinition, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            templateDefinition,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         TemplateRequest.TemplateDefinition deserializedTemplateDefinition = TemplateRequest.TemplateDefinition.fromXContent(parser);
         assertEquals(templateDefinition, deserializedTemplateDefinition);
     }
 }
-

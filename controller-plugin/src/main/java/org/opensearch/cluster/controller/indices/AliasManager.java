@@ -1,5 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.indices;
-
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,11 +34,11 @@ public class AliasManager {
     public AliasManager(MetadataStore metadataStore) {
         this.metadataStore = metadataStore;
     }
-    
+
     /**
      * Creates an alias that points to one or more indices
      * This is called from the API handler
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param indexName The index name (or comma-separated list)
@@ -44,29 +47,33 @@ public class AliasManager {
      */
     public void createAlias(String clusterId, String aliasName, String indexName, String aliasConfig) throws Exception {
         log.info("AliasManager - Creating alias '{}' for index '{}' in cluster '{}'", aliasName, indexName, clusterId);
-        
+
         // Parse target indices from the indexName parameter (could be comma-separated)
         List<String> newIndices = parseIndicesFromString(indexName);
         log.info("AliasManager - Parsed alias name: {}, new indices to add: {}", aliasName, newIndices);
-        
+
         validateAliasName(aliasName);
         validateTargetIndices(clusterId, newIndices);
-        
+
         // Check if alias already exists and merge indices
         CoordinatorGoalState goalState = getOrCreateCoordinatorGoalState(clusterId);
         Object existingTarget = goalState.getRemoteShards().getAliases().get(aliasName);
         List<String> finalTargetIndices = mergeIndicesWithExisting(newIndices, existingTarget, aliasName);
-        
+
         // Save the alias configuration
         saveAliasConfiguration(clusterId, aliasName, finalTargetIndices, goalState);
-        
-        log.info("AliasManager - Successfully created/updated alias '{}' pointing to {} indices: {}", 
-                 aliasName, finalTargetIndices.size(), finalTargetIndices);
+
+        log.info(
+            "AliasManager - Successfully created/updated alias '{}' pointing to {} indices: {}",
+            aliasName,
+            finalTargetIndices.size(),
+            finalTargetIndices
+        );
     }
-    
+
     /**
      * Deletes an alias or removes it from a specific index
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param indexName The index name (if provided, removes alias only from this index)
@@ -74,62 +81,61 @@ public class AliasManager {
      */
     public void deleteAlias(String clusterId, String aliasName, String indexName) throws Exception {
         log.info("AliasManager - Deleting alias '{}' from cluster '{}'", aliasName, clusterId);
-        
+
         validateAliasName(aliasName);
-        
+
         // Get current alias configuration
         CoordinatorGoalState goalState = metadataStore.getCoordinatorGoalState(clusterId);
         if (goalState == null || !goalState.getRemoteShards().getAliases().containsKey(aliasName)) {
             throw new Exception("Alias '" + aliasName + "' not found in cluster '" + clusterId + "'");
         }
-        
+
         // If no specific index provided, delete the entire alias
         if (indexName == null || indexName.trim().isEmpty()) {
             deleteEntireAlias(clusterId, aliasName, goalState);
             return;
         }
-        
+
         // Remove specific index from alias
         Object currentTarget = goalState.getRemoteShards().getAliases().get(aliasName);
         List<String> targetIndices = getTargetIndicesAsList(currentTarget);
-        
+
         if (!targetIndices.contains(indexName)) {
             throw new Exception("Alias '" + aliasName + "' does not point to index '" + indexName + "'");
         }
-        
+
         targetIndices.remove(indexName);
-        log.info("AliasManager - Removed index '{}' from alias '{}'. Remaining indices: {}", 
-                 indexName, aliasName, targetIndices);
-        
+        log.info("AliasManager - Removed index '{}' from alias '{}'. Remaining indices: {}", indexName, aliasName, targetIndices);
+
         // Update or delete alias based on remaining indices
         updateRemainingIndices(clusterId, aliasName, targetIndices, goalState);
         saveCoordinatorGoalState(clusterId, goalState);
         log.info("AliasManager - Successfully updated/deleted alias '{}'", aliasName);
     }
-    
+
     /**
      * Get alias information
      */
     public String getAlias(String clusterId, String aliasName) throws Exception {
         log.info("AliasManager - Getting alias '{}' from cluster '{}'", aliasName, clusterId);
-        
+
         CoordinatorGoalState goalState = metadataStore.getCoordinatorGoalState(clusterId);
         if (goalState == null) {
             throw new Exception("No coordinator goal state found for cluster '" + clusterId + "'");
         }
-        
+
         Map<String, Object> aliases = goalState.getRemoteShards().getAliases();
-        
+
         if (!aliases.containsKey(aliasName)) {
             throw new Exception("Alias '" + aliasName + "' not found in cluster '" + clusterId + "'");
         }
-        
+
         // Return as JSON
         Map<String, Object> response = new HashMap<>();
         response.put(aliasName, aliases.get(aliasName));
         return XContentUtils.writeValue(response);
     }
-    
+
     /**
      * Check if alias exists
      */
@@ -146,11 +152,11 @@ public class AliasManager {
             return false;
         }
     }
-    
+
     // =================================================================
     // VALIDATION METHODS
     // =================================================================
-    
+
     /**
      * Helper method to validate alias name
      */
@@ -158,12 +164,12 @@ public class AliasManager {
         if (aliasName == null || aliasName.trim().isEmpty()) {
             throw new Exception("Alias name cannot be null or empty");
         }
-        
+
         if (aliasName.contains(" ")) {
             throw new Exception("Alias name cannot contain spaces");
         }
     }
-    
+
     /**
      * Helper method to validate target indices
      */
@@ -171,7 +177,7 @@ public class AliasManager {
         if (targetIndices == null || targetIndices.isEmpty()) {
             throw new Exception("Target indices cannot be null or empty");
         }
-        
+
         // Validate that all target indices exist
         for (String targetIndex : targetIndices) {
             if (targetIndex == null || targetIndex.trim().isEmpty()) {
@@ -182,17 +188,17 @@ public class AliasManager {
             }
         }
     }
-    
+
     // =================================================================
     // COORDINATOR GOAL STATE METHODS
     // =================================================================
-    
+
     /**
      * Helper method to get or create coordinator goal state
      */
     private CoordinatorGoalState getOrCreateCoordinatorGoalState(String clusterId) throws Exception {
         CoordinatorGoalState goalState = metadataStore.getCoordinatorGoalState(clusterId);
-        
+
         if (goalState != null) {
             return goalState;
         } else {
@@ -201,7 +207,7 @@ public class AliasManager {
             return goalState;
         }
     }
-    
+
     /**
      * Helper method to save coordinator goal state to etcd
      */
@@ -214,17 +220,18 @@ public class AliasManager {
             throw new Exception("Failed to save coordinator goal state: " + e.getMessage(), e);
         }
     }
-    
+
     /**
      * Helper method to update alias target indices in both etcd and coordinator goal state
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param targetIndices The target indices (String for single index, List for multiple)
      * @param goalState The coordinator goal state to update
      * @throws Exception if update fails
      */
-    private void updateAliasTarget(String clusterId, String aliasName, Object targetIndices, CoordinatorGoalState goalState) throws Exception {
+    private void updateAliasTarget(String clusterId, String aliasName, Object targetIndices, CoordinatorGoalState goalState)
+        throws Exception {
         Alias alias = new Alias();
         alias.setAliasName(aliasName);
         alias.setTargetIndices(targetIndices);
@@ -232,11 +239,11 @@ public class AliasManager {
         goalState.getRemoteShards().getAliases().put(aliasName, targetIndices);
         log.debug("AliasManager - Updated alias target for '{}' to: {}", aliasName, targetIndices);
     }
-    
+
     /**
      * Helper method to convert alias target to a list of indices
      * Handles both String (single index) and List (multiple indices) formats
-     * 
+     *
      * @param target The alias target (String or List<String>)
      * @return List of target indices
      */
@@ -250,24 +257,21 @@ public class AliasManager {
         }
         return new ArrayList<>();
     }
-    
+
     /**
      * Helper method to parse comma-separated index names into a list
-     * 
+     *
      * @param indexName Comma-separated index names
      * @return List of trimmed, non-empty index names
      */
     private List<String> parseIndicesFromString(String indexName) {
-        return Arrays.stream(indexName.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toList());
+        return Arrays.stream(indexName.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
     }
-    
+
     /**
      * Helper method to merge new indices with existing alias targets
      * Avoids duplicates and logs merge operations
-     * 
+     *
      * @param newIndices New indices to add
      * @param existingTarget Existing alias target (String or List)
      * @param aliasName Alias name for logging
@@ -275,12 +279,12 @@ public class AliasManager {
      */
     private List<String> mergeIndicesWithExisting(List<String> newIndices, Object existingTarget, String aliasName) {
         List<String> finalTargetIndices = new ArrayList<>();
-        
+
         if (existingTarget != null) {
             // Alias exists - merge with existing indices
             log.info("AliasManager - Alias '{}' already exists, adding new indices to it", aliasName);
             finalTargetIndices.addAll(getTargetIndicesAsList(existingTarget));
-            
+
             // Add new indices (avoid duplicates)
             for (String newIndex : newIndices) {
                 if (!finalTargetIndices.contains(newIndex)) {
@@ -295,40 +299,40 @@ public class AliasManager {
             log.info("AliasManager - Creating new alias '{}'", aliasName);
             finalTargetIndices.addAll(newIndices);
         }
-        
+
         return finalTargetIndices;
     }
-    
+
     /**
      * Helper method to save alias configuration to etcd and coordinator goal state
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param targetIndices List of target indices
      * @param goalState The coordinator goal state to update
      * @throws Exception if save fails
      */
-    private void saveAliasConfiguration(String clusterId, String aliasName, List<String> targetIndices, 
-                                       CoordinatorGoalState goalState) throws Exception {
+    private void saveAliasConfiguration(String clusterId, String aliasName, List<String> targetIndices, CoordinatorGoalState goalState)
+        throws Exception {
         // Convert to single string if only one index, otherwise keep as list
         Object targetValue = targetIndices.size() == 1 ? targetIndices.getFirst() : targetIndices;
-        
+
         // Store alias configuration for persistence and rebuilding
         Alias alias = new Alias();
         alias.setAliasName(aliasName);
         alias.setTargetIndices(targetValue);
-        
+
         metadataStore.setAlias(clusterId, aliasName, alias);
         log.info("AliasManager - Stored alias config for '{}'", aliasName);
-        
+
         // Update coordinator goal state for instant availability
         goalState.getRemoteShards().getAliases().put(aliasName, targetValue);
         saveCoordinatorGoalState(clusterId, goalState);
     }
-    
+
     /**
      * Helper method to delete an entire alias from the cluster
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param goalState The coordinator goal state to update
@@ -341,19 +345,19 @@ public class AliasManager {
         saveCoordinatorGoalState(clusterId, goalState);
         log.info("AliasManager - Successfully deleted alias '{}'", aliasName);
     }
-    
+
     /**
      * Helper method to update alias after removing an index
      * Handles three cases: empty (delete), single index (convert to string), multiple indices (keep as list)
-     * 
+     *
      * @param clusterId The cluster ID
      * @param aliasName The alias name
      * @param targetIndices Remaining target indices after removal
      * @param goalState The coordinator goal state to update
      * @throws Exception if update fails
      */
-    private void updateRemainingIndices(String clusterId, String aliasName, List<String> targetIndices, 
-                                       CoordinatorGoalState goalState) throws Exception {
+    private void updateRemainingIndices(String clusterId, String aliasName, List<String> targetIndices, CoordinatorGoalState goalState)
+        throws Exception {
         if (targetIndices.isEmpty()) {
             // No indices left, delete the entire alias
             log.info("AliasManager - No indices left for alias '{}', deleting entirely", aliasName);

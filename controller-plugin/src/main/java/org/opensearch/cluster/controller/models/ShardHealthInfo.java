@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.enums.HealthState;
@@ -7,7 +11,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-
 
 /**
  * Health information for a specific shard
@@ -21,66 +24,65 @@ public class ShardHealthInfo implements ToXContentObject {
     private int relocatingReplicas;
     private int initializingReplicas;
     private int unassignedReplicas;
-    
-    public ShardHealthInfo() {
-    }
-    
+
+    public ShardHealthInfo() {}
+
     public int getShardId() {
         return shardId;
     }
-    
+
     public void setShardId(int shardId) {
         this.shardId = shardId;
     }
-    
+
     public HealthState getStatus() {
         return status;
     }
-    
+
     public void setStatus(HealthState status) {
         this.status = status;
     }
-    
+
     public boolean isPrimaryActive() {
         return primaryActive;
     }
-    
+
     public void setPrimaryActive(boolean primaryActive) {
         this.primaryActive = primaryActive;
     }
-    
+
     public int getActiveReplicas() {
         return activeReplicas;
     }
-    
+
     public void setActiveReplicas(int activeReplicas) {
         this.activeReplicas = activeReplicas;
     }
-    
+
     public int getRelocatingReplicas() {
         return relocatingReplicas;
     }
-    
+
     public void setRelocatingReplicas(int relocatingReplicas) {
         this.relocatingReplicas = relocatingReplicas;
     }
-    
+
     public int getInitializingReplicas() {
         return initializingReplicas;
     }
-    
+
     public void setInitializingReplicas(int initializingReplicas) {
         this.initializingReplicas = initializingReplicas;
     }
-    
+
     public int getUnassignedReplicas() {
         return unassignedReplicas;
     }
-    
+
     public void setUnassignedReplicas(int unassignedReplicas) {
         this.unassignedReplicas = unassignedReplicas;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -96,7 +98,7 @@ public class ShardHealthInfo implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static ShardHealthInfo fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -149,24 +151,31 @@ public class ShardHealthInfo implements ToXContentObject {
         }
         return shardHealthInfo;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ShardHealthInfo that = (ShardHealthInfo) obj;
-        return shardId == that.shardId &&
-               primaryActive == that.primaryActive &&
-               activeReplicas == that.activeReplicas &&
-               relocatingReplicas == that.relocatingReplicas &&
-               initializingReplicas == that.initializingReplicas &&
-               unassignedReplicas == that.unassignedReplicas &&
-               status == that.status;
+        return shardId == that.shardId
+            && primaryActive == that.primaryActive
+            && activeReplicas == that.activeReplicas
+            && relocatingReplicas == that.relocatingReplicas
+            && initializingReplicas == that.initializingReplicas
+            && unassignedReplicas == that.unassignedReplicas
+            && status == that.status;
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(shardId, status, primaryActive, activeReplicas,
-                relocatingReplicas, initializingReplicas, unassignedReplicas);
+        return java.util.Objects.hash(
+            shardId,
+            status,
+            primaryActive,
+            activeReplicas,
+            relocatingReplicas,
+            initializingReplicas,
+            unassignedReplicas
+        );
     }
 }

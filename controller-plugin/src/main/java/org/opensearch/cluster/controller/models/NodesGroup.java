@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -11,102 +15,102 @@ import java.util.List;
 
 /**
  * Represents a logical group of nodes.
- * 
+ *
  * A GROUP is a fixed set of nodes (typically 3 or 5 nodes) with the same role
  * that are treated as a single allocation unit for bin-packing purposes.
- * 
+ *
  * All nodes in a group must:
  * - Have the same role (PRIMARY or REPLICA)
  * - Have the same GROUP ID (currently extracted from shard pool)
  */
 public class NodesGroup implements ToXContentObject {
-    
+
     /**
      * Unique identifier for this group (extracted from nodes' GROUP ID)
      */
     private String groupId;
-    
+
     /**
      * Role of all nodes in this group (e.g., "PRIMARY", "SEARCH_REPLICA")
      */
     private String role;
-    
+
     /**
      * Shard ID that this group belongs to
      */
     private String shardId;
-    
+
     /**
      * List of SearchUnit node IDs in this group
      */
     private List<String> nodeIds;
-    
+
     /**
      * List of actual SearchUnit objects in this group
      */
     private List<SearchUnit> nodes;
-    
+
     /**
      * Current load on this group (number of shards allocated to this group)
      * Used for bin-packing: select groups with lower load
      */
     private int currentLoad;
-    
+
     public String getGroupId() {
         return groupId;
     }
-    
+
     public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
-    
+
     public String getRole() {
         return role;
     }
-    
+
     public void setRole(String role) {
         this.role = role;
     }
-    
+
     public String getShardId() {
         return shardId;
     }
-    
+
     public void setShardId(String shardId) {
         this.shardId = shardId;
     }
-    
+
     public List<String> getNodeIds() {
         return nodeIds;
     }
-    
+
     public void setNodeIds(List<String> nodeIds) {
         this.nodeIds = nodeIds;
     }
-    
+
     public List<SearchUnit> getNodes() {
         return nodes;
     }
-    
+
     public void setNodes(List<SearchUnit> nodes) {
         this.nodes = nodes;
     }
-    
+
     public int getCurrentLoad() {
         return currentLoad;
     }
-    
+
     public void setCurrentLoad(int currentLoad) {
         this.currentLoad = currentLoad;
     }
-    
+
     /**
      * Group size (number of nodes)
      */
     public int size() {
         return nodes != null ? nodes.size() : 0;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -133,7 +137,7 @@ public class NodesGroup implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static NodesGroup fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -202,20 +206,20 @@ public class NodesGroup implements ToXContentObject {
         }
         return nodesGroup;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         NodesGroup that = (NodesGroup) obj;
-        return currentLoad == that.currentLoad &&
-               java.util.Objects.equals(groupId, that.groupId) &&
-               java.util.Objects.equals(role, that.role) &&
-               java.util.Objects.equals(shardId, that.shardId) &&
-               java.util.Objects.equals(nodeIds, that.nodeIds) &&
-               java.util.Objects.equals(nodes, that.nodes);
+        return currentLoad == that.currentLoad
+            && java.util.Objects.equals(groupId, that.groupId)
+            && java.util.Objects.equals(role, that.role)
+            && java.util.Objects.equals(shardId, that.shardId)
+            && java.util.Objects.equals(nodeIds, that.nodeIds)
+            && java.util.Objects.equals(nodes, that.nodes);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(groupId, role, shardId, nodeIds, nodes, currentLoad);

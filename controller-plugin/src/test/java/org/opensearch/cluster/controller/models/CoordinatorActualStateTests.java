@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -23,11 +19,19 @@ public class CoordinatorActualStateTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         CoordinatorActualState coordinatorActualState = new CoordinatorActualState();
 
-        BytesReference bytesRef = XContentHelper.toXContent(coordinatorActualState, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            coordinatorActualState,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         CoordinatorActualState deserializedCoordinatorActualState = CoordinatorActualState.fromXContent(parser);
         assertEquals(coordinatorActualState, deserializedCoordinatorActualState);
     }
 }
-

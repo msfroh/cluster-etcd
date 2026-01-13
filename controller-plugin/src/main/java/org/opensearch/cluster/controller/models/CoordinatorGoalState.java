@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -16,40 +20,40 @@ import java.util.Map;
  * Specifies which indices, shards, aliases, and remote clusters this coordinator should be aware of.
  */
 public class CoordinatorGoalState implements ToXContentObject {
-    
+
     private RemoteShards remoteShards;
     private String lastUpdated;
     private long version;
-    
+
     public CoordinatorGoalState() {
         this.remoteShards = new RemoteShards();
         this.version = 1;
     }
-    
+
     public RemoteShards getRemoteShards() {
         return remoteShards;
     }
-    
+
     public void setRemoteShards(RemoteShards remoteShards) {
         this.remoteShards = remoteShards != null ? remoteShards : new RemoteShards();
     }
-    
+
     public String getLastUpdated() {
         return lastUpdated;
     }
-    
+
     public void setLastUpdated(String lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
-    
+
     public long getVersion() {
         return version;
     }
-    
+
     public void setVersion(long version) {
         this.version = version;
     }
-    
+
     /**
      * Remote shards structure for coordinator nodes
      */
@@ -59,35 +63,34 @@ public class CoordinatorGoalState implements ToXContentObject {
          * index-name -> shard routing configuration
          */
         private Map<String, IndexShardRouting> indices;
-        
-        
+
         /**
          * Map of aliases to their target indices
          * alias-name -> index-name (String) or List<String> for multi-index aliases
          */
         private Map<String, Object> aliases;
-        
+
         public RemoteShards() {
             this.indices = new HashMap<>();
             this.aliases = new HashMap<>();
         }
-        
+
         public Map<String, IndexShardRouting> getIndices() {
             return indices;
         }
-        
+
         public void setIndices(Map<String, IndexShardRouting> indices) {
             this.indices = indices;
         }
-        
+
         public Map<String, Object> getAliases() {
             return aliases;
         }
-        
+
         public void setAliases(Map<String, Object> aliases) {
             this.aliases = aliases;
         }
-        
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
@@ -106,7 +109,7 @@ public class CoordinatorGoalState implements ToXContentObject {
             builder.endObject();
             return builder;
         }
-        
+
         public static RemoteShards fromXContent(XContentParser parser) throws IOException {
             if (parser.currentToken() == null) {
                 parser.nextToken();
@@ -132,22 +135,21 @@ public class CoordinatorGoalState implements ToXContentObject {
             }
             return remoteShards;
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null || getClass() != obj.getClass()) return false;
             RemoteShards that = (RemoteShards) obj;
-            return java.util.Objects.equals(indices, that.indices) &&
-                   java.util.Objects.equals(aliases, that.aliases);
+            return java.util.Objects.equals(indices, that.indices) && java.util.Objects.equals(aliases, that.aliases);
         }
-        
+
         @Override
         public int hashCode() {
             return java.util.Objects.hash(indices, aliases);
         }
     }
-    
+
     /**
      * Shard routing information for an index
      */
@@ -157,15 +159,15 @@ public class CoordinatorGoalState implements ToXContentObject {
          * Each inner array represents all replicas for that shard number
          */
         private List<List<ShardNodeAssignment>> shardRouting;
-        
+
         public List<List<ShardNodeAssignment>> getShardRouting() {
             return shardRouting;
         }
-        
+
         public void setShardRouting(List<List<ShardNodeAssignment>> shardRouting) {
             this.shardRouting = shardRouting;
         }
-        
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
@@ -183,7 +185,7 @@ public class CoordinatorGoalState implements ToXContentObject {
             builder.endObject();
             return builder;
         }
-        
+
         public static IndexShardRouting fromXContent(XContentParser parser) throws IOException {
             if (parser.currentToken() == null) {
                 parser.nextToken();
@@ -221,7 +223,7 @@ public class CoordinatorGoalState implements ToXContentObject {
             }
             return indexShardRouting;
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
@@ -229,38 +231,36 @@ public class CoordinatorGoalState implements ToXContentObject {
             IndexShardRouting that = (IndexShardRouting) obj;
             return java.util.Objects.equals(shardRouting, that.shardRouting);
         }
-        
+
         @Override
         public int hashCode() {
             return java.util.Objects.hash(shardRouting);
         }
     }
-    
-    
-    
+
     /**
      * Node assignment for a specific shard replica
      */
     public static class ShardNodeAssignment implements ToXContentObject {
         private String nodeName;
         private Boolean primary; // null/absent = search replica, true = primary
-        
+
         public String getNodeName() {
             return nodeName;
         }
-        
+
         public void setNodeName(String nodeName) {
             this.nodeName = nodeName;
         }
-        
+
         public Boolean getPrimary() {
             return primary;
         }
-        
+
         public void setPrimary(Boolean primary) {
             this.primary = primary;
         }
-        
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
@@ -273,7 +273,7 @@ public class CoordinatorGoalState implements ToXContentObject {
             builder.endObject();
             return builder;
         }
-        
+
         public static ShardNodeAssignment fromXContent(XContentParser parser) throws IOException {
             if (parser.currentToken() == null) {
                 parser.nextToken();
@@ -303,31 +303,34 @@ public class CoordinatorGoalState implements ToXContentObject {
             }
             return shardNodeAssignment;
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null || getClass() != obj.getClass()) return false;
             ShardNodeAssignment that = (ShardNodeAssignment) obj;
-            return java.util.Objects.equals(nodeName, that.nodeName) &&
-                   java.util.Objects.equals(primary, that.primary);
+            return java.util.Objects.equals(nodeName, that.nodeName) && java.util.Objects.equals(primary, that.primary);
         }
-        
+
         @Override
         public int hashCode() {
             return java.util.Objects.hash(nodeName, primary);
         }
     }
-    
+
     @Override
     public String toString() {
-        return "CoordinatorGoalState{" +
-                "remoteShards=" + remoteShards +
-                ", lastUpdated='" + lastUpdated + '\'' +
-                ", version=" + version +
-                '}';
+        return "CoordinatorGoalState{"
+            + "remoteShards="
+            + remoteShards
+            + ", lastUpdated='"
+            + lastUpdated
+            + '\''
+            + ", version="
+            + version
+            + '}';
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -342,7 +345,7 @@ public class CoordinatorGoalState implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static CoordinatorGoalState fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -378,17 +381,17 @@ public class CoordinatorGoalState implements ToXContentObject {
         }
         return coordinatorGoalState;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         CoordinatorGoalState that = (CoordinatorGoalState) obj;
-        return version == that.version &&
-               java.util.Objects.equals(remoteShards, that.remoteShards) &&
-               java.util.Objects.equals(lastUpdated, that.lastUpdated);
+        return version == that.version
+            && java.util.Objects.equals(remoteShards, that.remoteShards)
+            && java.util.Objects.equals(lastUpdated, that.lastUpdated);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(remoteShards, lastUpdated, version);

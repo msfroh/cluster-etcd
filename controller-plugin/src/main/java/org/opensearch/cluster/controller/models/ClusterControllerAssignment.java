@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -12,42 +16,41 @@ public class ClusterControllerAssignment implements ToXContentObject {
     private String cluster;
     private long timestamp;
     private String lease;
-    
-    public ClusterControllerAssignment() {
-    }
-    
+
+    public ClusterControllerAssignment() {}
+
     public String getController() {
         return controller;
     }
-    
+
     public void setController(String controller) {
         this.controller = controller;
     }
-    
+
     public String getCluster() {
         return cluster;
     }
-    
+
     public void setCluster(String cluster) {
         this.cluster = cluster;
     }
-    
+
     public long getTimestamp() {
         return timestamp;
     }
-    
+
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
-    
+
     public String getLease() {
         return lease;
     }
-    
+
     public void setLease(String lease) {
         this.lease = lease;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -64,7 +67,7 @@ public class ClusterControllerAssignment implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static ClusterControllerAssignment fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -105,18 +108,18 @@ public class ClusterControllerAssignment implements ToXContentObject {
         }
         return assignment;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ClusterControllerAssignment that = (ClusterControllerAssignment) obj;
-        return timestamp == that.timestamp &&
-               java.util.Objects.equals(controller, that.controller) &&
-               java.util.Objects.equals(cluster, that.cluster) &&
-               java.util.Objects.equals(lease, that.lease);
+        return timestamp == that.timestamp
+            && java.util.Objects.equals(controller, that.controller)
+            && java.util.Objects.equals(cluster, that.cluster)
+            && java.util.Objects.equals(lease, that.lease);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(controller, cluster, timestamp, lease);

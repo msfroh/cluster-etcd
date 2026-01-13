@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -20,13 +16,24 @@ import org.opensearch.test.OpenSearchTestCase;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 
+import static java.time.ZoneOffset.UTC;
+
 public class TaskMetadataTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         TaskMetadata taskMetadata = new TaskMetadata();
 
-        BytesReference bytesRef = XContentHelper.toXContent(taskMetadata, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            taskMetadata,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         TaskMetadata deserializedTaskMetadata = TaskMetadata.fromXContent(parser);
         assertEquals(taskMetadata, deserializedTaskMetadata);
     }
@@ -39,15 +46,23 @@ public class TaskMetadataTests extends OpenSearchTestCase {
         taskMetadata.setSchedule("0 0 * * *");
         taskMetadata.setInput("{\"source\":\"index1\",\"dest\":\"index2\"}");
         taskMetadata.setOutput("{\"documentsIndexed\":1000}");
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(UTC);
         taskMetadata.setLastUpdated(now);
         taskMetadata.setCreatedAt(now.minusHours(1));
 
-        BytesReference bytesRef = XContentHelper.toXContent(taskMetadata, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            taskMetadata,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         TaskMetadata deserializedTaskMetadata = TaskMetadata.fromXContent(parser);
         assertEquals(taskMetadata, deserializedTaskMetadata);
     }
 }
-

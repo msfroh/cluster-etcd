@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.metrics;
 
 // TODO: This class needs to be reimplemented without Spring and Micrometer dependencies
@@ -13,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /*
  * MetricsProvider is a utility class for creating and managing various types of metrics
  * such as counters, gauges, and timers.
- * 
+ *
  * NOTE: This is a stub implementation. The original used Micrometer and Spring which are not
  * available in the OpenSearch plugin environment. This needs to be reimplemented using
  * OpenSearch's metrics APIs.
@@ -28,13 +32,19 @@ public class MetricsProvider {
     // Stub counter class
     public static class Counter {
         public void increment() {}
+
         public void increment(double amount) {}
     }
-    
+
     // Stub timer class
     public static class Timer {
-        public void record(Runnable runnable) { runnable.run(); }
-        public <T> T recordCallable(java.util.concurrent.Callable<T> callable) throws Exception { return callable.call(); }
+        public void record(Runnable runnable) {
+            runnable.run();
+        }
+
+        public <T> T recordCallable(java.util.concurrent.Callable<T> callable) throws Exception {
+            return callable.call();
+        }
     }
 
     public MetricsProvider(String controllerId) {
@@ -54,15 +64,13 @@ public class MetricsProvider {
         return new Counter();
     }
 
-    /**
-     * Gets or creates a Gauge metric that can be updated.
-     * STUB: Returns a simple AtomicReference<Double>.
-     *
-     * @param name the name of the gauge
-     * @param value the value of the gauge
-     * @param tags a map of tag keys to tag values
-     * @return the AtomicReference<Double> instance representing the gauge value
-     */
+    /// Gets or creates a Gauge metric that can be updated.
+    /// STUB: Returns a simple AtomicReference<Double>.
+    ///
+    /// @param name the name of the gauge
+    /// @param value the value of the gauge
+    /// @param tags a map of tag keys to tag values
+    /// @return the AtomicReference<Double> instance representing the gauge value
     public AtomicReference<Double> gauge(String name, double value, Map<String, String> tags) {
         String cacheKey = buildCacheKey(name, tags);
         AtomicReference<Double> gauge = gaugeCache.computeIfAbsent(cacheKey, k -> new AtomicReference<>(value));
@@ -91,7 +99,8 @@ public class MetricsProvider {
      */
     private String buildCacheKey(String name, Map<String, String> tags) {
         StringBuilder key = new StringBuilder(name);
-        tags.entrySet().stream()
+        tags.entrySet()
+            .stream()
             .sorted(Map.Entry.comparingByKey())
             .forEach(e -> key.append(":").append(e.getKey()).append("=").append(e.getValue()));
         return key.toString();
@@ -113,4 +122,3 @@ public class MetricsProvider {
         return tagArray;
     }
 }
-

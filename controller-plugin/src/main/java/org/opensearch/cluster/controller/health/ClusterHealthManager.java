@@ -1,5 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.health;
-
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +27,6 @@ import java.util.Optional;
 import static org.opensearch.cluster.controller.config.Constants.LEVEL_INDICES;
 import static org.opensearch.cluster.controller.config.Constants.LEVEL_SHARDS;
 
-
 /**
  * Manages cluster health monitoring and statistics collection.
  * <p>
@@ -40,7 +42,6 @@ import static org.opensearch.cluster.controller.config.Constants.LEVEL_SHARDS;
  */
 public class ClusterHealthManager {
     private static final Logger log = LogManager.getLogger(ClusterHealthManager.class);
-
 
     private final MetadataStore metadataStore;
 
@@ -163,17 +164,27 @@ public class ClusterHealthManager {
 
             List<Index> indices = metadataStore.getAllIndexConfigs(clusterId);
 
-            log.info("Found {} search units, {} actual states, {} indices for cluster '{}'",
-                    actualStates.size(), actualStates.size(), indices.size(), clusterId);
+            log.info(
+                "Found {} search units, {} actual states, {} indices for cluster '{}'",
+                actualStates.size(),
+                actualStates.size(),
+                indices.size(),
+                clusterId
+            );
 
             // Calculate cluster health
             ClusterHealthInfo healthResponse = calculateClusterHealth(clusterId, actualStates, indices, level);
 
             // Convert to JSON
             String healthJson = XContentUtils.writeValue(healthResponse);
-            log.info("Successfully calculated cluster health for cluster '{}': nodes={}, dataNodes={}, activeNodes={}, nodesByHealth={}",
-                    clusterId, healthResponse.getNumberOfNodes(), healthResponse.getNumberOfDataNodes(),
-                    healthResponse.getActiveNodes(), healthResponse.getNodesByHealth());
+            log.info(
+                "Successfully calculated cluster health for cluster '{}': nodes={}, dataNodes={}, activeNodes={}, nodesByHealth={}",
+                clusterId,
+                healthResponse.getNumberOfNodes(),
+                healthResponse.getNumberOfDataNodes(),
+                healthResponse.getActiveNodes(),
+                healthResponse.getNodesByHealth()
+            );
             return healthJson;
 
         } catch (Exception e) {
@@ -185,8 +196,12 @@ public class ClusterHealthManager {
     /**
      * Calculate comprehensive cluster health based on nodes, indices, and shards
      */
-    private ClusterHealthInfo calculateClusterHealth(String clusterId,
-                                                     Map<String, SearchUnitActualState> actualStates, List<Index> indices, String level) {
+    private ClusterHealthInfo calculateClusterHealth(
+        String clusterId,
+        Map<String, SearchUnitActualState> actualStates,
+        List<Index> indices,
+        String level
+    ) {
 
         ClusterHealthInfo response = new ClusterHealthInfo();
         response.setClusterName(clusterId);
@@ -208,9 +223,14 @@ public class ClusterHealthManager {
             addDetailedIndexInfo(response, indices, actualStates, level);
         }
 
-        log.info("Calculated cluster health: status={}, nodes={}/{}/{}, active_shards={}",
-                response.getStatus(), response.getNumberOfDataNodes(), response.getNumberOfNodes(),
-                response.getActiveNodes(), response.getActiveShards());
+        log.info(
+            "Calculated cluster health: status={}, nodes={}/{}/{}, active_shards={}",
+            response.getStatus(),
+            response.getNumberOfDataNodes(),
+            response.getNumberOfNodes(),
+            response.getActiveNodes(),
+            response.getActiveShards()
+        );
 
         return response;
     }
@@ -218,8 +238,7 @@ public class ClusterHealthManager {
     /**
      * Calculate node health statistics
      */
-    private void calculateNodeHealth(ClusterHealthInfo response,
-                                     Map<String, SearchUnitActualState> actualStates) {
+    private void calculateNodeHealth(ClusterHealthInfo response, Map<String, SearchUnitActualState> actualStates) {
 
         NodeCounts counts = countNodesByRoleAndHealth(actualStates);
 
@@ -249,8 +268,9 @@ public class ClusterHealthManager {
      */
     private void calculateIndexHealth(ClusterHealthInfo response, List<Index> indices) {
         response.setNumberOfIndices(indices.size());
-        response.setTotalShards(Math.max(response.getTotalShards(),
-                indices.stream().mapToInt(index -> index.getSettings().getNumberOfShards()).sum()));
+        response.setTotalShards(
+            Math.max(response.getTotalShards(), indices.stream().mapToInt(index -> index.getSettings().getNumberOfShards()).sum())
+        );
     }
 
     /**
@@ -285,8 +305,12 @@ public class ClusterHealthManager {
     /**
      * Add detailed index information based on level
      */
-    private void addDetailedIndexInfo(ClusterHealthInfo response, List<Index> indices,
-                                      Map<String, SearchUnitActualState> actualStates, String level) {
+    private void addDetailedIndexInfo(
+        ClusterHealthInfo response,
+        List<Index> indices,
+        Map<String, SearchUnitActualState> actualStates,
+        String level
+    ) {
 
         for (Index index : indices) {
             String indexName = index.getIndexName();
@@ -311,7 +335,9 @@ public class ClusterHealthManager {
             Map<String, SearchUnitActualState> actualStates = metadataStore.getAllSearchUnitActualStates(clusterId);
             Optional<String> indexConfigJson = metadataStore.getIndexConfig(clusterId, indexName);
 
-            String indexConfigJsonString = indexConfigJson.orElseThrow(() -> new IllegalArgumentException("Index '" + indexName + "' not found in cluster '" + clusterId + "'"));
+            String indexConfigJsonString = indexConfigJson.orElseThrow(
+                () -> new IllegalArgumentException("Index '" + indexName + "' not found in cluster '" + clusterId + "'")
+            );
 
             // Parse index config from JSON
             Index index = XContentUtils.readValue(indexConfigJsonString, Index::fromXContent);
@@ -328,8 +354,13 @@ public class ClusterHealthManager {
 
             // Convert to JSON
             String healthJson = XContentUtils.writeValue(indexHealth);
-            log.info("Successfully calculated health for index '{}': status={}, activeShards={}/{}",
-                    indexName, indexHealth.getStatus(), indexHealth.getActiveShards(), indexHealth.getNumberOfShards());
+            log.info(
+                "Successfully calculated health for index '{}': status={}, activeShards={}/{}",
+                indexName,
+                indexHealth.getStatus(),
+                indexHealth.getActiveShards(),
+                indexHealth.getNumberOfShards()
+            );
             return healthJson;
 
         } catch (IllegalArgumentException e) {
@@ -344,8 +375,7 @@ public class ClusterHealthManager {
     /**
      * Calculate health for a single index
      */
-    private IndexHealthInfo calculateSingleIndexHealth(String indexName, Index index,
-                                                       Map<String, SearchUnitActualState> actualStates) {
+    private IndexHealthInfo calculateSingleIndexHealth(String indexName, Index index, Map<String, SearchUnitActualState> actualStates) {
 
         IndexHealthInfo indexHealth = new IndexHealthInfo();
 
@@ -469,14 +499,12 @@ public class ClusterHealthManager {
                 ClusterInformation.Version version = metadataStore.getClusterVersion(clusterId);
                 if (version != null) {
                     clusterInfo.setVersion(version);
-                    log.debug("Set cluster version from registry for cluster '{}': {}",
-                            clusterId, version.getNumber());
+                    log.debug("Set cluster version from registry for cluster '{}': {}", clusterId, version.getNumber());
                 } else {
                     log.debug("No version information found in cluster registry for cluster '{}'", clusterId);
                 }
             } catch (Exception e) {
-                log.warn("Failed to read cluster version from registry for cluster '{}': {}",
-                        clusterId, e.getMessage());
+                log.warn("Failed to read cluster version from registry for cluster '{}': {}", clusterId, e.getMessage());
             }
 
             return XContentUtils.writeValue(clusterInfo);

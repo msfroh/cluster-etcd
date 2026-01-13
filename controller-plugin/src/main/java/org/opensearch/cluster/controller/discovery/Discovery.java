@@ -1,5 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.discovery;
-
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,31 +32,29 @@ import static org.opensearch.cluster.controller.metrics.MetricsConstants.DISCOVE
 public class Discovery {
     private static final Logger log = LogManager.getLogger(Discovery.class);
 
-    
     private final MetadataStore metadataStore;
     private final MetricsProvider metricsProvider;
-    
+
     public Discovery(MetadataStore metadataStore, MetricsProvider metricsProvider) {
         this.metadataStore = metadataStore;
         this.metricsProvider = metricsProvider;
     }
-    
 
     public void discoverSearchUnits(String clusterName) {
         log.info("Discovery - Starting search unit discovery process for cluster: {}", clusterName);
-        
+
         // Discover and update search units from Etcd actual-states
         discoverSearchUnitsFromEtcd(clusterName);
-        
+
         // Clean up stale search units before processing
         cleanupStaleSearchUnits(clusterName);
-        
+
         // Process all search units to ensure they're up-to-date
         processAllSearchUnits(clusterName);
-        
+
         log.info("Discovery - Completed search unit discovery process for cluster: {}", clusterName);
     }
-    
+
     /**
      * Process all search units to ensure they're current
      */
@@ -61,14 +62,14 @@ public class Discovery {
         try {
             List<SearchUnit> allSearchUnits = metadataStore.getAllSearchUnits(clusterName);
             log.info("Discovery - Processing {} total search units for updates", allSearchUnits.size());
-            
+
             for (SearchUnit searchUnit : allSearchUnits) {
                 try {
                     log.debug("Discovery - Processing search unit: {}", searchUnit.getName());
-                    
+
                     // Update the search unit (this could include health checks, metrics, etc.)
                     metadataStore.updateSearchUnit(clusterName, searchUnit);
-                    
+
                     log.debug("Discovery - Successfully updated search unit: {}", searchUnit.getName());
                 } catch (Exception e) {
                     log.error("Discovery - Failed to update search unit {}: {}", searchUnit.getName(), e.getMessage());
@@ -85,9 +86,9 @@ public class Discovery {
     private void discoverSearchUnitsFromEtcd(String clusterName) {
         try {
             // fetch search units from actual-state paths
-            List<SearchUnit> etcdSearchUnits = fetchSearchUnitsFromEtcd(clusterName); 
+            List<SearchUnit> etcdSearchUnits = fetchSearchUnitsFromEtcd(clusterName);
             log.info("Discovery - Found {} search units from Etcd", etcdSearchUnits.size());
-            
+
             // Update/create search units in metadata store
             for (SearchUnit searchUnit : etcdSearchUnits) {
                 try {
@@ -99,8 +100,7 @@ public class Discovery {
                         metadataStore.upsertSearchUnit(clusterName, searchUnit.getName(), searchUnit);
                     }
                 } catch (Exception e) {
-                    log.warn("Discovery - Failed to update search unit '{}' from Etcd: {}", 
-                        searchUnit.getName(), e.getMessage());
+                    log.warn("Discovery - Failed to update search unit '{}' from Etcd: {}", searchUnit.getName(), e.getMessage());
                 }
             }
         } catch (Exception e) {
@@ -114,17 +114,16 @@ public class Discovery {
      */
     public List<SearchUnit> fetchSearchUnitsFromEtcd(String clusterName) {
         log.info("Discovery - Fetching search units from Etcd...");
-        
+
         try {
-            Map<String, SearchUnitActualState> actualStates = 
-                    metadataStore.getAllSearchUnitActualStates(clusterName);
-            
+            Map<String, SearchUnitActualState> actualStates = metadataStore.getAllSearchUnitActualStates(clusterName);
+
             List<SearchUnit> searchUnits = new ArrayList<>();
-            
+
             for (Map.Entry<String, SearchUnitActualState> entry : actualStates.entrySet()) {
                 String unitName = entry.getKey();
                 SearchUnitActualState actualState = entry.getValue();
-                
+
                 try {
                     // Convert to SearchUnit
                     SearchUnit searchUnit = convertActualStateToSearchUnit(actualState, unitName);
@@ -135,50 +134,55 @@ public class Discovery {
                     log.warn("Discovery - Failed to convert actual state for unit {}: {}", unitName, e.getMessage());
                 }
             }
-            
+
             log.info("Discovery - Successfully fetched {} search units from Etcd actual-states", searchUnits.size());
             return searchUnits;
-            
+
         } catch (Exception e) {
             log.error("Discovery - Failed to fetch search units from Etcd: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }
-    
+
     /**
      * Convert SearchUnitActualState to SearchUnit object
      */
     private SearchUnit convertActualStateToSearchUnit(SearchUnitActualState actualState, String unitName) {
         SearchUnit searchUnit = new SearchUnit();
-        
+
         // Basic node identification
         searchUnit.setName(unitName);
         searchUnit.setHost(actualState.getAddress());
         searchUnit.setPortHttp(actualState.getHttpPort());
         searchUnit.setPortTransport(actualState.getTransportPort());
-        
+
         // Extract role, shard_id, and cluster_name directly from actual state (populated by worker)
         searchUnit.setRole(actualState.getRole());
         searchUnit.setShardId(actualState.getShardId());
         searchUnit.setClusterName(actualState.getClusterName());
-        
-        // Set node state directly from deriveNodeState 
+
+        // Set node state directly from deriveNodeState
         HealthState statePulled = actualState.deriveNodeState();
         searchUnit.setStatePulled(statePulled);
-        
+
         // Set admin state based on health
         searchUnit.setStateAdmin(actualState.deriveAdminState());
-        
+
         // Set node attributes based on role
         Map<String, String> attributes = NodeAttributes.getAttributesForRole(searchUnit.getRole());
         searchUnit.setNodeAttributes(new HashMap<>(attributes));
-        
-        log.debug("Discovery - Converted actual state to SearchUnit: {} (role: {}, shard: {}, state: {})", 
-                unitName, searchUnit.getRole(), searchUnit.getShardId(), searchUnit.getStatePulled());
-        
+
+        log.debug(
+            "Discovery - Converted actual state to SearchUnit: {} (role: {}, shard: {}, state: {})",
+            unitName,
+            searchUnit.getRole(),
+            searchUnit.getShardId(),
+            searchUnit.getStatePulled()
+        );
+
         return searchUnit;
     }
-    
+
     /**
      * Clean up search units with missing or stale actual state timestamp (older than configured timeout)
      */
@@ -186,21 +190,20 @@ public class Discovery {
         int deletedCount = 0;
         try {
             log.info("Discovery - Starting cleanup of stale search units...");
-            
+
             // Get all existing search units from metadata store
             List<SearchUnit> allSearchUnits = metadataStore.getAllSearchUnits(clusterName);
-            
+
             for (SearchUnit searchUnit : allSearchUnits) {
                 String unitName = searchUnit.getName();
-                
+
                 try {
                     // Check if actual state exists
-                    SearchUnitActualState actualState = 
-                            metadataStore.getSearchUnitActualState(clusterName, unitName);
-                    
+                    SearchUnitActualState actualState = metadataStore.getSearchUnitActualState(clusterName, unitName);
+
                     boolean shouldDelete = false;
                     String reason = "";
-                    
+
                     if (actualState == null) {
                         // Case 1: Missing actual state
                         shouldDelete = true;
@@ -212,30 +215,29 @@ public class Discovery {
                             reason = "stale timestamp (older than " + Constants.STALE_SEARCH_UNIT_TIMEOUT_MINUTES + " minutes)";
                         }
                     }
-                    
+
                     if (shouldDelete) {
                         log.info("Discovery - Deleting search unit '{}' due to: {}", unitName, reason);
                         // Delete the entire search unit (conf, actual-state, goal-state) with single call
                         metadataStore.deleteSearchUnit(clusterName, unitName);
                         deletedCount++;
                     }
-                    
+
                 } catch (Exception e) {
                     log.error("Discovery - Failed to check/delete search unit '{}': {}", unitName, e.getMessage());
                 }
             }
-            
+
             log.info("Discovery - Cleanup completed. Deleted {} stale search units", deletedCount);
-            
+
         } catch (Exception e) {
             log.error("Discovery - Failed to cleanup stale search units: {}", e.getMessage(), e);
         } finally {
-            metricsProvider
-                .counter(DISCOVERY_CLEANED_STALE_SEARCH_UNITS_COUNT_METRIC_NAME, Map.of(CLUSTER_ID_TAG, clusterName))
+            metricsProvider.counter(DISCOVERY_CLEANED_STALE_SEARCH_UNITS_COUNT_METRIC_NAME, Map.of(CLUSTER_ID_TAG, clusterName))
                 .increment(deletedCount);
         }
     }
-    
+
     /**
      * Check if actual state timestamp is older than the configured timeout
      */
@@ -244,14 +246,20 @@ public class Discovery {
         long nodeTimestamp = actualState.getTimestamp();
         long timeDiff = currentTime - nodeTimestamp;
         long timeoutInMs = Constants.STALE_SEARCH_UNIT_TIMEOUT_MINUTES * 60 * 1000; // Convert minutes to milliseconds
-        
+
         boolean isStale = timeDiff > timeoutInMs;
-        
+
         if (isStale) {
-            log.debug("Discovery - Actual state is stale: timestamp={}, age={}ms ({}min), threshold={}ms ({}min)", 
-                nodeTimestamp, timeDiff, timeDiff / (60 * 1000), timeoutInMs, Constants.STALE_SEARCH_UNIT_TIMEOUT_MINUTES);
+            log.debug(
+                "Discovery - Actual state is stale: timestamp={}, age={}ms ({}min), threshold={}ms ({}min)",
+                nodeTimestamp,
+                timeDiff,
+                timeDiff / (60 * 1000),
+                timeoutInMs,
+                Constants.STALE_SEARCH_UNIT_TIMEOUT_MINUTES
+            );
         }
-        
+
         return isStale;
     }
 
@@ -259,10 +267,10 @@ public class Discovery {
         log.info("Monitoring cluster health");
         // TODO: Implement cluster health monitoring logic
     }
-    
+
     public void updateClusterTopology() {
         log.info("Updating cluster topology state");
         // TODO: Implement cluster topology update logic
     }
-    
+
 }

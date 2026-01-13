@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -8,13 +12,14 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 
-import static org.opensearch.cluster.controller.config.Constants.*;
+import static java.time.ZoneOffset.UTC;
+import static org.opensearch.cluster.controller.config.Constants.TASK_STATUS_PENDING;
 
 /**
  * Task metadata representing task state and information stored in metadata store.
  */
 public class TaskMetadata implements ToXContentObject {
-    
+
     private String name;
     private String status;
     private int priority; // 0 = highest priority
@@ -23,83 +28,83 @@ public class TaskMetadata implements ToXContentObject {
     private String output;
     private OffsetDateTime lastUpdated;
     private OffsetDateTime createdAt;
-    
+
     public TaskMetadata() {
-        this.createdAt = OffsetDateTime.now();
-        this.lastUpdated = OffsetDateTime.now();
+        this.createdAt = OffsetDateTime.now(UTC);
+        this.lastUpdated = OffsetDateTime.now(UTC);
         this.status = TASK_STATUS_PENDING;
     }
-    
+
     public TaskMetadata(String name, int priority) {
         this();
         this.name = name;
         this.priority = priority;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String getStatus() {
         return status;
     }
-    
+
     public void setStatus(String status) {
         this.status = status;
     }
-    
+
     public int getPriority() {
         return priority;
     }
-    
+
     public void setPriority(int priority) {
         this.priority = priority;
     }
-    
+
     public String getSchedule() {
         return schedule;
     }
-    
+
     public void setSchedule(String schedule) {
         this.schedule = schedule;
     }
-    
+
     public String getInput() {
         return input;
     }
-    
+
     public void setInput(String input) {
         this.input = input;
     }
-    
+
     public String getOutput() {
         return output;
     }
-    
+
     public void setOutput(String output) {
         this.output = output;
     }
-    
+
     public OffsetDateTime getLastUpdated() {
         return lastUpdated;
     }
-    
+
     public void setLastUpdated(OffsetDateTime lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
-    
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
-    
+
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -128,7 +133,7 @@ public class TaskMetadata implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static TaskMetadata fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -181,25 +186,24 @@ public class TaskMetadata implements ToXContentObject {
         }
         return taskMetadata;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         TaskMetadata that = (TaskMetadata) obj;
-        return priority == that.priority &&
-               java.util.Objects.equals(name, that.name) &&
-               java.util.Objects.equals(status, that.status) &&
-               java.util.Objects.equals(schedule, that.schedule) &&
-               java.util.Objects.equals(input, that.input) &&
-               java.util.Objects.equals(output, that.output) &&
-               java.util.Objects.equals(lastUpdated, that.lastUpdated) &&
-               java.util.Objects.equals(createdAt, that.createdAt);
+        return priority == that.priority
+            && java.util.Objects.equals(name, that.name)
+            && java.util.Objects.equals(status, that.status)
+            && java.util.Objects.equals(schedule, that.schedule)
+            && java.util.Objects.equals(input, that.input)
+            && java.util.Objects.equals(output, that.output)
+            && java.util.Objects.equals(lastUpdated, that.lastUpdated)
+            && java.util.Objects.equals(createdAt, that.createdAt);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(name, status, priority, schedule, input, output,
-                lastUpdated, createdAt);
+        return java.util.Objects.hash(name, status, priority, schedule, input, output, lastUpdated, createdAt);
     }
 }

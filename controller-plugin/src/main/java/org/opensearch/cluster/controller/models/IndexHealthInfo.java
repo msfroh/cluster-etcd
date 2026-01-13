@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.enums.HealthState;
@@ -23,8 +27,7 @@ public class IndexHealthInfo implements ToXContentObject {
     private int unassignedShards;
     private Map<String, ShardHealthInfo> shards = new HashMap<>(); // Only populated for shard-level detail
 
-    public IndexHealthInfo() {
-    }
+    public IndexHealthInfo() {}
 
     public HealthState getStatus() {
         return status;
@@ -168,19 +171,27 @@ public class IndexHealthInfo implements ToXContentObject {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         IndexHealthInfo that = (IndexHealthInfo) obj;
-        return numberOfShards == that.numberOfShards &&
-                numberOfReplicas == that.numberOfReplicas &&
-                activeShards == that.activeShards &&
-                relocatingShards == that.relocatingShards &&
-                initializingShards == that.initializingShards &&
-                unassignedShards == that.unassignedShards &&
-                status == that.status &&
-                java.util.Objects.equals(shards, that.shards);
+        return numberOfShards == that.numberOfShards
+            && numberOfReplicas == that.numberOfReplicas
+            && activeShards == that.activeShards
+            && relocatingShards == that.relocatingShards
+            && initializingShards == that.initializingShards
+            && unassignedShards == that.unassignedShards
+            && status == that.status
+            && java.util.Objects.equals(shards, that.shards);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(status, numberOfShards, numberOfReplicas, activeShards,
-                relocatingShards, initializingShards, unassignedShards, shards);
+        return java.util.Objects.hash(
+            status,
+            numberOfShards,
+            numberOfReplicas,
+            activeShards,
+            relocatingShards,
+            initializingShards,
+            unassignedShards,
+            shards
+        );
     }
 }

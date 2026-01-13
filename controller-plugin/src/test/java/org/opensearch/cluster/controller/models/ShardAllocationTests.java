@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -24,9 +20,18 @@ public class ShardAllocationTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         ShardAllocation shardAllocation = new ShardAllocation();
 
-        BytesReference bytesRef = XContentHelper.toXContent(shardAllocation, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            shardAllocation,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ShardAllocation deserializedShardAllocation = ShardAllocation.fromXContent(parser);
         assertEquals(shardAllocation, deserializedShardAllocation);
     }
@@ -39,11 +44,19 @@ public class ShardAllocationTests extends OpenSearchTestCase {
         shardAllocation.setSearchSUs(Arrays.asList("node4", "node5"));
         shardAllocation.setAllocationTimestamp(System.currentTimeMillis());
 
-        BytesReference bytesRef = XContentHelper.toXContent(shardAllocation, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            shardAllocation,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ShardAllocation deserializedShardAllocation = ShardAllocation.fromXContent(parser);
         assertEquals(shardAllocation, deserializedShardAllocation);
     }
 }
-

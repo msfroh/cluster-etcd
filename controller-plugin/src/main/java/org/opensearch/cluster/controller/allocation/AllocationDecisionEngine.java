@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.allocation;
 
 import org.opensearch.cluster.controller.enums.NodeRole;
@@ -9,16 +13,16 @@ import java.util.List;
 
 /**
  * Engine that decides which nodes are eligible for shard allocation.
- * 
+ *
  * Different implementations can use different strategies:
  * - StandardAllocationEngine: Uses deciders (current behavior)
  * - GroupAwareBinPackingEngine: Uses group-based bin-packing (future)
  */
 public interface AllocationDecisionEngine {
-    
+
     /**
      * Get available nodes for allocation.
-     * 
+     *
      * @param shardId Shard ID (0, 1, 2, ...)
      * @param indexName Index name
      * @param indexConfig Index configuration

@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.enums.HealthState;
@@ -24,9 +20,18 @@ public class ShardHealthInfoTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         ShardHealthInfo shardHealthInfo = new ShardHealthInfo();
 
-        BytesReference bytesRef = XContentHelper.toXContent(shardHealthInfo, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            shardHealthInfo,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ShardHealthInfo deserializedShardHealthInfo = ShardHealthInfo.fromXContent(parser);
         assertEquals(shardHealthInfo, deserializedShardHealthInfo);
     }
@@ -41,11 +46,19 @@ public class ShardHealthInfoTests extends OpenSearchTestCase {
         shardHealthInfo.setInitializingReplicas(1);
         shardHealthInfo.setUnassignedReplicas(0);
 
-        BytesReference bytesRef = XContentHelper.toXContent(shardHealthInfo, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            shardHealthInfo,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         ShardHealthInfo deserializedShardHealthInfo = ShardHealthInfo.fromXContent(parser);
         assertEquals(shardHealthInfo, deserializedShardHealthInfo);
     }
 }
-

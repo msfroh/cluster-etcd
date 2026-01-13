@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -9,52 +13,53 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.time.ZoneOffset.UTC;
+
 /**
  * Configuration for an alias
  * Stored at /aliases/{clusterId}/{aliasName}/conf
  */
 public class Alias implements ToXContentObject {
-    
+
     private String aliasName;
     private Object targetIndices; // Can be String (single) or List<String> (multiple)
-    private String createdAt = java.time.OffsetDateTime.now().toString();
-    private String updatedAt = java.time.OffsetDateTime.now().toString();
-    
-    public Alias() {
-    }
-    
+    private String createdAt = java.time.OffsetDateTime.now(UTC).toString();
+    private String updatedAt = java.time.OffsetDateTime.now(UTC).toString();
+
+    public Alias() {}
+
     public String getAliasName() {
         return aliasName;
     }
-    
+
     public void setAliasName(String aliasName) {
         this.aliasName = aliasName;
     }
-    
+
     public Object getTargetIndices() {
         return targetIndices;
     }
-    
+
     public void setTargetIndices(Object targetIndices) {
         this.targetIndices = targetIndices;
     }
-    
+
     public String getCreatedAt() {
         return createdAt;
     }
-    
+
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     public String getUpdatedAt() {
         return updatedAt;
     }
-    
+
     public void setUpdatedAt(String updatedAt) {
         this.updatedAt = updatedAt;
     }
-    
+
     /**
      * Get target indices as a list (whether stored as String or List)
      */
@@ -68,7 +73,7 @@ public class Alias implements ToXContentObject {
         }
         return new ArrayList<>();
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -91,7 +96,7 @@ public class Alias implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static Alias fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -145,18 +150,18 @@ public class Alias implements ToXContentObject {
         }
         return alias;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         Alias alias = (Alias) obj;
-        return java.util.Objects.equals(aliasName, alias.aliasName) &&
-               java.util.Objects.equals(targetIndices, alias.targetIndices) &&
-               java.util.Objects.equals(createdAt, alias.createdAt) &&
-               java.util.Objects.equals(updatedAt, alias.updatedAt);
+        return java.util.Objects.equals(aliasName, alias.aliasName)
+            && java.util.Objects.equals(targetIndices, alias.targetIndices)
+            && java.util.Objects.equals(createdAt, alias.createdAt)
+            && java.util.Objects.equals(updatedAt, alias.updatedAt);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(aliasName, targetIndices, createdAt, updatedAt);

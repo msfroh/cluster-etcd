@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.enums.HealthState;
@@ -37,8 +41,7 @@ public class ClusterHealthInfo implements ToXContentObject {
     private Map<HealthState, Integer> nodesByHealth = new HashMap<>();
     private Map<String, IndexHealthInfo> indices = new HashMap<>();
 
-    public ClusterHealthInfo() {
-    }
+    public ClusterHealthInfo() {}
 
     public String getClusterName() {
         return clusterName;
@@ -367,42 +370,61 @@ public class ClusterHealthInfo implements ToXContentObject {
         }
         return clusterHealthInfo;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ClusterHealthInfo that = (ClusterHealthInfo) obj;
-        return timedOut == that.timedOut &&
-               numberOfNodes == that.numberOfNodes &&
-               numberOfDataNodes == that.numberOfDataNodes &&
-               numberOfCoordinatorNodes == that.numberOfCoordinatorNodes &&
-               activeNodes == that.activeNodes &&
-               numberOfIndices == that.numberOfIndices &&
-               activePrimaryShards == that.activePrimaryShards &&
-               activeShards == that.activeShards &&
-               relocatingShards == that.relocatingShards &&
-               initializingShards == that.initializingShards &&
-               unassignedShards == that.unassignedShards &&
-               delayedUnassignedShards == that.delayedUnassignedShards &&
-               failedShards == that.failedShards &&
-               totalShards == that.totalShards &&
-               activeShardsPercentAsNumber == that.activeShardsPercentAsNumber &&
-               numberOfPendingTasks == that.numberOfPendingTasks &&
-               numberOfInFlightFetch == that.numberOfInFlightFetch &&
-               taskMaxWaitingInQueueMillis == that.taskMaxWaitingInQueueMillis &&
-               java.util.Objects.equals(clusterName, that.clusterName) &&
-               status == that.status &&
-               java.util.Objects.equals(nodesByHealth, that.nodesByHealth) &&
-               java.util.Objects.equals(indices, that.indices);
+        return timedOut == that.timedOut
+            && numberOfNodes == that.numberOfNodes
+            && numberOfDataNodes == that.numberOfDataNodes
+            && numberOfCoordinatorNodes == that.numberOfCoordinatorNodes
+            && activeNodes == that.activeNodes
+            && numberOfIndices == that.numberOfIndices
+            && activePrimaryShards == that.activePrimaryShards
+            && activeShards == that.activeShards
+            && relocatingShards == that.relocatingShards
+            && initializingShards == that.initializingShards
+            && unassignedShards == that.unassignedShards
+            && delayedUnassignedShards == that.delayedUnassignedShards
+            && failedShards == that.failedShards
+            && totalShards == that.totalShards
+            && activeShardsPercentAsNumber == that.activeShardsPercentAsNumber
+            && numberOfPendingTasks == that.numberOfPendingTasks
+            && numberOfInFlightFetch == that.numberOfInFlightFetch
+            && taskMaxWaitingInQueueMillis == that.taskMaxWaitingInQueueMillis
+            && java.util.Objects.equals(clusterName, that.clusterName)
+            && status == that.status
+            && java.util.Objects.equals(nodesByHealth, that.nodesByHealth)
+            && java.util.Objects.equals(indices, that.indices);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(clusterName, status, timedOut, numberOfNodes, numberOfDataNodes,
-                numberOfCoordinatorNodes, activeNodes, numberOfIndices, activePrimaryShards, activeShards,
-                relocatingShards, initializingShards, unassignedShards, delayedUnassignedShards, failedShards,
-                totalShards, activeShardsPercentAsNumber, numberOfPendingTasks, numberOfInFlightFetch,
-                taskMaxWaitingInQueueMillis, nodesByHealth, indices);
+        return java.util.Objects.hash(
+            clusterName,
+            status,
+            timedOut,
+            numberOfNodes,
+            numberOfDataNodes,
+            numberOfCoordinatorNodes,
+            activeNodes,
+            numberOfIndices,
+            activePrimaryShards,
+            activeShards,
+            relocatingShards,
+            initializingShards,
+            unassignedShards,
+            delayedUnassignedShards,
+            failedShards,
+            totalShards,
+            activeShardsPercentAsNumber,
+            numberOfPendingTasks,
+            numberOfInFlightFetch,
+            taskMaxWaitingInQueueMillis,
+            nodesByHealth,
+            indices
+        );
     }
 }

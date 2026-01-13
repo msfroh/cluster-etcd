@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -10,43 +14,42 @@ import java.util.Map;
 
 /**
  * Model representing OpenSearch Cluster Information response.
- * 
+ *
  * Based on OpenSearch Cluster Information API:
  * https://docs.opensearch.org/latest/api-reference/cluster-api/info/
- * 
+ *
  * This is returned by the root endpoint (/) and provides version, build details,
  * and cluster identification information.
  */
 public class ClusterInformation implements ToXContentObject {
-    
+
     /**
      * The name of the node that served the request.
      */
     private String name;
-    
+
     /**
      * The name of the cluster.
      */
     private String clusterName;
-    
+
     /**
      * The universally unique identifier (UUID) of the cluster.
      */
     private String clusterUuid;
-    
+
     /**
      * Version and build metadata.
      */
     private Version version;
-    
+
     /**
      * The tagline string.
      */
     private String tagline = "The OpenSearch Project: https://opensearch.org/";
-    
-    public ClusterInformation() {
-    }
-    
+
+    public ClusterInformation() {}
+
     public ClusterInformation(String name, String clusterName, String clusterUuid, Version version, String tagline) {
         this.name = name;
         this.clusterName = clusterName;
@@ -54,47 +57,47 @@ public class ClusterInformation implements ToXContentObject {
         this.version = version;
         this.tagline = tagline;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
     }
-    
+
     public String getClusterUuid() {
         return clusterUuid;
     }
-    
+
     public void setClusterUuid(String clusterUuid) {
         this.clusterUuid = clusterUuid;
     }
-    
+
     public Version getVersion() {
         return version;
     }
-    
+
     public void setVersion(Version version) {
         this.version = version;
     }
-    
+
     public String getTagline() {
         return tagline;
     }
-    
+
     public void setTagline(String tagline) {
         this.tagline = tagline;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -117,7 +120,7 @@ public class ClusterInformation implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static ClusterInformation fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -161,63 +164,70 @@ public class ClusterInformation implements ToXContentObject {
         }
         return clusterInformation;
     }
-    
+
     /**
      * Nested class representing version and build information.
      */
     public static class Version implements ToXContentObject {
-        
+
         /**
          * The distribution identifier, typically "opensearch".
          */
         private String distribution;
-        
+
         /**
          * The OpenSearch version number (e.g., "3.2.0").
          */
         private String number;
-        
+
         /**
          * The distribution type (e.g., "tar", "rpm", "deb").
          */
         private String buildType;
-        
+
         /**
          * The commit hash the build was created from.
          */
         private String hash;
-        
+
         /**
          * The build timestamp in ISO 8601 format.
          */
         private String buildDate;
-        
+
         /**
          * Whether the build is a snapshot build.
          */
         private Boolean buildSnapshot;
-        
+
         /**
          * The Lucene version used by this build.
          */
         private String luceneVersion;
-        
+
         /**
          * The minimum compatible transport protocol version.
          */
         private String minimumWireCompatibilityVersion;
-        
+
         /**
          * The minimum index version that can be read.
          */
         private String minimumIndexCompatibilityVersion;
-        
-        public Version() {
-        }
-        
-        public Version(String distribution, String number, String buildType, String hash, String buildDate,
-                      Boolean buildSnapshot, String luceneVersion, String minimumWireCompatibilityVersion,
-                      String minimumIndexCompatibilityVersion) {
+
+        public Version() {}
+
+        public Version(
+            String distribution,
+            String number,
+            String buildType,
+            String hash,
+            String buildDate,
+            Boolean buildSnapshot,
+            String luceneVersion,
+            String minimumWireCompatibilityVersion,
+            String minimumIndexCompatibilityVersion
+        ) {
             this.distribution = distribution;
             this.number = number;
             this.buildType = buildType;
@@ -228,75 +238,75 @@ public class ClusterInformation implements ToXContentObject {
             this.minimumWireCompatibilityVersion = minimumWireCompatibilityVersion;
             this.minimumIndexCompatibilityVersion = minimumIndexCompatibilityVersion;
         }
-        
+
         public String getDistribution() {
             return distribution;
         }
-        
+
         public void setDistribution(String distribution) {
             this.distribution = distribution;
         }
-        
+
         public String getNumber() {
             return number;
         }
-        
+
         public void setNumber(String number) {
             this.number = number;
         }
-        
+
         public String getBuildType() {
             return buildType;
         }
-        
+
         public void setBuildType(String buildType) {
             this.buildType = buildType;
         }
-        
+
         public String getHash() {
             return hash;
         }
-        
+
         public void setHash(String hash) {
             this.hash = hash;
         }
-        
+
         public String getBuildDate() {
             return buildDate;
         }
-        
+
         public void setBuildDate(String buildDate) {
             this.buildDate = buildDate;
         }
-        
+
         public Boolean getBuildSnapshot() {
             return buildSnapshot;
         }
-        
+
         public void setBuildSnapshot(Boolean buildSnapshot) {
             this.buildSnapshot = buildSnapshot;
         }
-        
+
         public String getLuceneVersion() {
             return luceneVersion;
         }
-        
+
         public void setLuceneVersion(String luceneVersion) {
             this.luceneVersion = luceneVersion;
         }
-        
+
         public String getMinimumWireCompatibilityVersion() {
             return minimumWireCompatibilityVersion;
         }
-        
+
         public void setMinimumWireCompatibilityVersion(String minimumWireCompatibilityVersion) {
             this.minimumWireCompatibilityVersion = minimumWireCompatibilityVersion;
         }
-        
+
         public String getMinimumIndexCompatibilityVersion() {
             return minimumIndexCompatibilityVersion;
         }
-        
+
         public void setMinimumIndexCompatibilityVersion(String minimumIndexCompatibilityVersion) {
             this.minimumIndexCompatibilityVersion = minimumIndexCompatibilityVersion;
         }
@@ -332,7 +342,7 @@ public class ClusterInformation implements ToXContentObject {
             }
             return version;
         }
-        
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
@@ -366,7 +376,7 @@ public class ClusterInformation implements ToXContentObject {
             builder.endObject();
             return builder;
         }
-        
+
         public static Version fromXContent(XContentParser parser) throws IOException {
             if (parser.currentToken() == null) {
                 parser.nextToken();
@@ -422,42 +432,51 @@ public class ClusterInformation implements ToXContentObject {
             }
             return version;
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null || getClass() != obj.getClass()) return false;
             Version version1 = (Version) obj;
-            return java.util.Objects.equals(distribution, version1.distribution) &&
-                   java.util.Objects.equals(number, version1.number) &&
-                   java.util.Objects.equals(buildType, version1.buildType) &&
-                   java.util.Objects.equals(hash, version1.hash) &&
-                   java.util.Objects.equals(buildDate, version1.buildDate) &&
-                   java.util.Objects.equals(buildSnapshot, version1.buildSnapshot) &&
-                   java.util.Objects.equals(luceneVersion, version1.luceneVersion) &&
-                   java.util.Objects.equals(minimumWireCompatibilityVersion, version1.minimumWireCompatibilityVersion) &&
-                   java.util.Objects.equals(minimumIndexCompatibilityVersion, version1.minimumIndexCompatibilityVersion);
+            return java.util.Objects.equals(distribution, version1.distribution)
+                && java.util.Objects.equals(number, version1.number)
+                && java.util.Objects.equals(buildType, version1.buildType)
+                && java.util.Objects.equals(hash, version1.hash)
+                && java.util.Objects.equals(buildDate, version1.buildDate)
+                && java.util.Objects.equals(buildSnapshot, version1.buildSnapshot)
+                && java.util.Objects.equals(luceneVersion, version1.luceneVersion)
+                && java.util.Objects.equals(minimumWireCompatibilityVersion, version1.minimumWireCompatibilityVersion)
+                && java.util.Objects.equals(minimumIndexCompatibilityVersion, version1.minimumIndexCompatibilityVersion);
         }
-        
+
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(distribution, number, buildType, hash, buildDate, buildSnapshot,
-                    luceneVersion, minimumWireCompatibilityVersion, minimumIndexCompatibilityVersion);
+            return java.util.Objects.hash(
+                distribution,
+                number,
+                buildType,
+                hash,
+                buildDate,
+                buildSnapshot,
+                luceneVersion,
+                minimumWireCompatibilityVersion,
+                minimumIndexCompatibilityVersion
+            );
         }
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ClusterInformation that = (ClusterInformation) obj;
-        return java.util.Objects.equals(name, that.name) &&
-               java.util.Objects.equals(clusterName, that.clusterName) &&
-               java.util.Objects.equals(clusterUuid, that.clusterUuid) &&
-               java.util.Objects.equals(version, that.version) &&
-               java.util.Objects.equals(tagline, that.tagline);
+        return java.util.Objects.equals(name, that.name)
+            && java.util.Objects.equals(clusterName, that.clusterName)
+            && java.util.Objects.equals(clusterUuid, that.clusterUuid)
+            && java.util.Objects.equals(version, that.version)
+            && java.util.Objects.equals(tagline, that.tagline);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(name, clusterName, clusterUuid, version, tagline);

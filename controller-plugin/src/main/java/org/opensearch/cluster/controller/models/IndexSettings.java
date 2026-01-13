@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -26,62 +30,61 @@ public class IndexSettings implements ToXContentObject {
 
     // Capture all unknown fields (e.g., ingestion_source, knn, replication.type, etc.)
     private Map<String, Object> additionalProperties = new HashMap<>();
-    
-    public IndexSettings() {
-    }
-    
+
+    public IndexSettings() {}
+
     public Integer getNumberOfShards() {
         return numberOfShards;
     }
-    
+
     public void setNumberOfShards(Integer numberOfShards) {
         this.numberOfShards = numberOfShards;
     }
-    
+
     public List<Integer> getShardReplicaCount() {
         return shardReplicaCount;
     }
-    
+
     public void setShardReplicaCount(List<Integer> shardReplicaCount) {
         this.shardReplicaCount = shardReplicaCount;
     }
-    
+
     public List<Integer> getNumGroupsPerShard() {
         return numGroupsPerShard;
     }
-    
+
     public void setNumGroupsPerShard(List<Integer> numGroupsPerShard) {
         this.numGroupsPerShard = numGroupsPerShard;
     }
-    
+
     public List<Integer> getNumIngestGroupsPerShard() {
         return numIngestGroupsPerShard;
     }
-    
+
     public void setNumIngestGroupsPerShard(List<Integer> numIngestGroupsPerShard) {
         this.numIngestGroupsPerShard = numIngestGroupsPerShard;
     }
-    
+
     public Boolean getPausePullIngestion() {
         return pausePullIngestion;
     }
-    
+
     public void setPausePullIngestion(Boolean pausePullIngestion) {
         this.pausePullIngestion = pausePullIngestion;
     }
-    
+
     public String getRefreshInterval() {
         return refreshInterval;
     }
-    
+
     public void setRefreshInterval(String refreshInterval) {
         this.refreshInterval = refreshInterval;
     }
-    
+
     public Integer getNumberOfReplicas() {
         return numberOfReplicas;
     }
-    
+
     public void setNumberOfReplicas(Integer numberOfReplicas) {
         this.numberOfReplicas = numberOfReplicas;
     }
@@ -93,7 +96,6 @@ public class IndexSettings implements ToXContentObject {
     public void setAdditionalProperty(String key, Object value) {
         additionalProperties.put(key, value);
     }
-
 
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
@@ -138,7 +140,7 @@ public class IndexSettings implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static IndexSettings fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -229,26 +231,33 @@ public class IndexSettings implements ToXContentObject {
         }
         return indexSettings;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         IndexSettings that = (IndexSettings) obj;
-        return java.util.Objects.equals(numberOfShards, that.numberOfShards) &&
-               java.util.Objects.equals(shardReplicaCount, that.shardReplicaCount) &&
-               java.util.Objects.equals(numGroupsPerShard, that.numGroupsPerShard) &&
-               java.util.Objects.equals(numIngestGroupsPerShard, that.numIngestGroupsPerShard) &&
-               java.util.Objects.equals(pausePullIngestion, that.pausePullIngestion) &&
-               java.util.Objects.equals(refreshInterval, that.refreshInterval) &&
-               java.util.Objects.equals(numberOfReplicas, that.numberOfReplicas) &&
-               java.util.Objects.equals(additionalProperties, that.additionalProperties);
+        return java.util.Objects.equals(numberOfShards, that.numberOfShards)
+            && java.util.Objects.equals(shardReplicaCount, that.shardReplicaCount)
+            && java.util.Objects.equals(numGroupsPerShard, that.numGroupsPerShard)
+            && java.util.Objects.equals(numIngestGroupsPerShard, that.numIngestGroupsPerShard)
+            && java.util.Objects.equals(pausePullIngestion, that.pausePullIngestion)
+            && java.util.Objects.equals(refreshInterval, that.refreshInterval)
+            && java.util.Objects.equals(numberOfReplicas, that.numberOfReplicas)
+            && java.util.Objects.equals(additionalProperties, that.additionalProperties);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(numberOfShards, shardReplicaCount, numGroupsPerShard,
-                numIngestGroupsPerShard, pausePullIngestion, refreshInterval, numberOfReplicas,
-                additionalProperties);
+        return java.util.Objects.hash(
+            numberOfShards,
+            shardReplicaCount,
+            numGroupsPerShard,
+            numIngestGroupsPerShard,
+            pausePullIngestion,
+            refreshInterval,
+            numberOfReplicas,
+            additionalProperties
+        );
     }
 }

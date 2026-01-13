@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.store;
 
 import io.etcd.jetcd.ByteSequence;
@@ -30,7 +34,6 @@ import org.opensearch.cluster.controller.models.ShardAllocation;
 import org.opensearch.cluster.controller.models.TaskMetadata;
 import org.opensearch.cluster.controller.models.Template;
 import org.opensearch.cluster.controller.models.TypeMapping;
-import org.opensearch.cluster.controller.util.EnvironmentUtils;
 import org.opensearch.cluster.controller.util.XContentUtils;
 import org.opensearch.common.CheckedFunction;
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -42,6 +45,7 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,51 +65,48 @@ import static org.opensearch.cluster.controller.config.Constants.PATH_DELIMITER;
  * Singleton to ensure single etcd client connection.
  */
 public class EtcdMetadataStore implements MetadataStore {
-    
+
     private final Logger log = LogManager.getLogger(getClass());
-    
+
     // TODO: Make etcd timeout configurable via environment variable or config
     private static final long ETCD_OPERATION_TIMEOUT_SECONDS = 5;
-    
+
     private static EtcdMetadataStore instance;
-    
+
     private final String[] etcdEndpoints;
     private final Client etcdClient;
-    private final KV kvClient;
     private final EtcdPathResolver pathResolver;
     // Configurable coordinator goal state location
     private volatile String coordinatorGoalStateGroup = Constants.PATH_COORDINATORS;
     private volatile String coordinatorGoalStateUnit = "default-coordinator";
-    
+
     // Leader election fields
     private final String nodeId;
     private final LeaderElection leaderElection;
-    
+
     /**
      * Private constructor for singleton pattern
      */
-    private EtcdMetadataStore(String[] etcdEndpoints) throws Exception {
+    private EtcdMetadataStore(String[] etcdEndpoints, String nodeName) {
         this.etcdEndpoints = etcdEndpoints;
-        this.nodeId = EnvironmentUtils.getRequiredEnv("NODE_NAME");
-        
+        this.nodeId = nodeName;
+
         // Initialize etcd client
         this.etcdClient = Client.builder().endpoints(etcdEndpoints).build();
-        this.kvClient = etcdClient.getKVClient();
-        
+
         // Initialize path resolver
         this.pathResolver = EtcdPathResolver.getInstance();
-        
+
         // Initialize leader election (controller-level, not cluster-specific)
         this.leaderElection = new LeaderElection(etcdClient, nodeId);
-        
-        log.info("EtcdMetadataStore initialized with endpoints: {} and nodeId: {}", 
-            String.join(",", etcdEndpoints), nodeId);
+
+        log.info("EtcdMetadataStore initialized with endpoints: {} and nodeId: {}", String.join(",", etcdEndpoints), nodeId);
     }
-    
+
     // =================================================================
     // SINGLETON MANAGEMENT
     // =================================================================
-    
+
     /**
      * Test constructor with injected dependencies
      */
@@ -113,26 +114,26 @@ public class EtcdMetadataStore implements MetadataStore {
         this.etcdEndpoints = etcdEndpoints;
         this.nodeId = nodeId;
         this.etcdClient = etcdClient;
-        this.kvClient = kvClient;
-        
+
         // Initialize path resolver
         this.pathResolver = EtcdPathResolver.getInstance();
-        
+
         // Initialize leader election for testing (controller-level, not cluster-specific)
         this.leaderElection = new LeaderElection(etcdClient, nodeId);
-        
+
         log.info("EtcdMetadataStore initialized for testing with nodeId: {}", nodeId);
     }
+
     /**
      * Get singleton instance
      */
-    public static synchronized EtcdMetadataStore getInstance(String[] etcdEndpoints) throws Exception {
+    public static synchronized EtcdMetadataStore getInstance(String[] etcdEndpoints, String nodeId) {
         if (instance == null) {
-            instance = new EtcdMetadataStore(etcdEndpoints);
+            instance = new EtcdMetadataStore(etcdEndpoints, nodeId);
         }
         return instance;
     }
-    
+
     /**
      * Get existing instance (throws if not initialized)
      */
@@ -142,14 +143,14 @@ public class EtcdMetadataStore implements MetadataStore {
         }
         return instance;
     }
-    
+
     /**
      * Reset singleton instance (for testing only)
      */
     public static synchronized void resetInstance() {
         instance = null;
     }
-    
+
     /**
      * Create test instance with mocked dependencies (for testing only)
      */
@@ -158,7 +159,7 @@ public class EtcdMetadataStore implements MetadataStore {
         instance = new EtcdMetadataStore(etcdEndpoints, nodeId, etcdClient, kvClient);
         return instance;
     }
-    
+
     /**
      * Get the etcd client for use by other components (e.g., MultiClusterManager)
      * @return the etcd Client instance
@@ -167,113 +168,112 @@ public class EtcdMetadataStore implements MetadataStore {
         return etcdClient;
     }
 
-    
     // =================================================================
     // CONTROLLER TASKS OPERATIONS
     // =================================================================
-    
+
     public List<TaskMetadata> getAllTasks(String clusterId) throws Exception {
         log.debug("Getting all tasks from etcd");
-        
+
         try {
             String tasksPrefix = pathResolver.getControllerTasksPrefix(clusterId);
             List<TaskMetadata> tasks = getAllObjectsByPrefix(tasksPrefix, TaskMetadata::fromXContent);
-            
+
             // Sort by priority (0 = highest priority)
             tasks.sort((t1, t2) -> Integer.compare(t1.getPriority(), t2.getPriority()));
-            
+
             log.debug("Retrieved {} tasks from etcd", tasks.size());
             return tasks;
-            
+
         } catch (Exception e) {
             log.error("Failed to get all tasks from etcd: {}", e.getMessage(), e);
             throw new Exception("Failed to retrieve tasks from etcd", e);
         }
     }
-    
+
     public Optional<TaskMetadata> getTask(String clusterId, String taskName) throws Exception {
         log.debug("Getting task {} from etcd", taskName);
-        
+
         try {
             String taskPath = pathResolver.getControllerTaskPath(clusterId, taskName);
             Optional<TaskMetadata> result = getObjectByPath(taskPath, TaskMetadata::fromXContent);
-            
+
             if (result.isPresent()) {
                 log.debug("Retrieved task {} from etcd", taskName);
             } else {
                 log.debug("Task {} not found in etcd", taskName);
             }
-            
+
             return result;
-            
+
         } catch (Exception e) {
             log.error("Failed to get task {} from etcd: {}", taskName, e.getMessage(), e);
             throw new Exception("Failed to retrieve task from etcd", e);
         }
     }
-    
+
     public String createTask(String clusterId, TaskMetadata task) throws Exception {
         log.info("Creating task {} in etcd", task.getName());
-        
+
         try {
             String taskPath = pathResolver.getControllerTaskPath(clusterId, task.getName());
             storeObjectAsJson(taskPath, task);
-            
+
             log.info("Successfully created task {} in etcd", task.getName());
             return task.getName();
-            
+
         } catch (Exception e) {
             log.error("Failed to create task {} in etcd: {}", task.getName(), e.getMessage(), e);
             throw new Exception("Failed to create task in etcd", e);
         }
     }
-    
+
     public void updateTask(String clusterId, TaskMetadata task) throws Exception {
         log.debug("Updating task {} in etcd", task.getName());
-        
+
         try {
             String taskPath = pathResolver.getControllerTaskPath(clusterId, task.getName());
             storeObjectAsJson(taskPath, task);
-            
+
             log.debug("Successfully updated task {} in etcd", task.getName());
-            
+
         } catch (Exception e) {
             log.error("Failed to update task {} in etcd: {}", task.getName(), e.getMessage(), e);
             throw new Exception("Failed to update task in etcd", e);
         }
     }
-    
+
     public void deleteTask(String clusterId, String taskName) throws Exception {
         log.info("Deleting task {} from etcd", taskName);
-        
+
         try {
             String taskPath = pathResolver.getControllerTaskPath(clusterId, taskName);
             executeEtcdDelete(taskPath);
-            
+
             log.info("Successfully deleted task {} from etcd", taskName);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete task {} from etcd: {}", taskName, e.getMessage(), e);
             throw new Exception("Failed to delete task from etcd", e);
         }
     }
-    
+
     public void deleteOldTasks(long olderThanTimestamp) throws Exception {
         log.debug("Deleting old tasks from etcd older than {}", olderThanTimestamp);
         // TODO: Implement etcd cleanup for old tasks
     }
-    
+
     // =================================================================
     // SEARCH UNITS OPERATIONS
     // =================================================================
-    
+
     public List<SearchUnit> getAllSearchUnits(String clusterId) throws Exception {
         log.debug("Getting all search units from etcd");
-        
+
         try {
             String unitsPrefix = pathResolver.getSearchUnitsPrefix(clusterId);
             GetResponse response = executeEtcdPrefixQuery(unitsPrefix);
-            
+
             List<SearchUnit> searchUnits = new ArrayList<>();
             for (var kv : response.getKvs()) {
                 String key = kv.getKey().toString(StandardCharsets.UTF_8);
@@ -289,36 +289,34 @@ public class EtcdMetadataStore implements MetadataStore {
                     }
                 }
             }
-            
+
             log.debug("Retrieved {} search units from etcd", searchUnits.size());
             return searchUnits;
-            
+
         } catch (Exception e) {
             log.error("Failed to get all search units from etcd: {}", e.getMessage(), e);
             throw new Exception("Failed to retrieve search units from etcd", e);
         }
     }
-    
+
     @Override
     public List<SearchUnit> getAllCoordinators(String clusterId) throws Exception {
         log.debug("Getting all coordinators from etcd for cluster: {}", clusterId);
         List<SearchUnit> coordinators = new ArrayList<>();
-        
+
         try {
             // Query etcd for all coordinators using existing helper
             String coordinatorsPrefix = pathResolver.getCoordinatorsPrefix(clusterId);
             GetResponse response = executeEtcdPrefixQuery(coordinatorsPrefix);
-            
+
             // Parse each coordinator actual-state entry
             for (KeyValue kv : response.getKvs()) {
                 String key = kv.getKey().toString(StandardCharsets.UTF_8);
                 String value = kv.getValue().toString(StandardCharsets.UTF_8);
-                
+
                 if (!key.endsWith("/actual-state")) {
                     continue;
                 }
-                
-
 
                 // Parse actual-state to check health
                 SearchUnitActualState actualState = XContentUtils.readValue(value, SearchUnitActualState::fromXContent);
@@ -329,8 +327,6 @@ public class EtcdMetadataStore implements MetadataStore {
                 if (!"coordinator".equals(role)) {
                     continue;
                 }
-
-
 
                 // Filter out RED (unhealthy) coordinators
                 if (healthState == HealthState.RED) {
@@ -343,7 +339,7 @@ public class EtcdMetadataStore implements MetadataStore {
                 // Convert actual-state to SearchUnit
                 String address = actualState.getAddress() == null ? actualState.getAddress() : "";
                 int httpPort = actualState.getHttpPort();
-                
+
                 SearchUnit coordinator = new SearchUnit();
                 coordinator.setName(nodeName);
                 coordinator.setHost(address);
@@ -352,126 +348,130 @@ public class EtcdMetadataStore implements MetadataStore {
                 coordinator.setPortTransport(transportPort);
                 coordinator.setRole("COORDINATOR");
                 coordinator.setClusterName(clusterId);
-                
+
                 // Validate before adding
                 if (address == null || address.trim().isEmpty()) {
                     log.warn("Coordinator '{}' has invalid/empty address, skipping", nodeName);
                     continue;
                 }
-                
+
                 coordinators.add(coordinator);
-                log.debug("Found healthy coordinator: {} at {}:{} (state={})", 
-                        coordinator.getName(), coordinator.getHost(), coordinator.getPortHttp(), healthState);
+                log.debug(
+                    "Found healthy coordinator: {} at {}:{} (state={})",
+                    coordinator.getName(),
+                    coordinator.getHost(),
+                    coordinator.getPortHttp(),
+                    healthState
+                );
             }
-            
+
             log.debug("Retrieved {} coordinators from etcd for cluster '{}'", coordinators.size(), clusterId);
             return coordinators;
-            
+
         } catch (Exception e) {
             log.error("Failed to get coordinators from etcd: {}", e.getMessage(), e);
             throw new Exception("Failed to retrieve coordinators from etcd", e);
         }
     }
-    
+
     public Optional<SearchUnit> getSearchUnit(String clusterId, String unitName) throws Exception {
         log.debug("Getting search unit {} from etcd", unitName);
-        
+
         try {
             String unitPath = pathResolver.getSearchUnitConfPath(clusterId, unitName);
             Optional<SearchUnit> result = getObjectByPath(unitPath, SearchUnit::fromXContent);
-            
+
             if (result.isPresent()) {
                 log.debug("Retrieved search unit {} from etcd", unitName);
             } else {
                 log.debug("Search unit {} not found in etcd", unitName);
             }
-            
+
             return result;
-            
+
         } catch (Exception e) {
             log.error("Failed to get search unit {} from etcd: {}", unitName, e.getMessage(), e);
             throw new Exception("Failed to retrieve search unit from etcd", e);
         }
     }
-    
+
     public void upsertSearchUnit(String clusterId, String unitName, SearchUnit searchUnit) throws Exception {
         log.info("Upserting search unit {} in etcd", unitName);
-        
+
         try {
             String unitPath = pathResolver.getSearchUnitConfPath(clusterId, unitName);
             storeObjectAsJson(unitPath, searchUnit);
-            
+
             log.info("Successfully upserted search unit {} in etcd", unitName);
-            
+
         } catch (Exception e) {
             log.error("Failed to upsert search unit {} in etcd: {}", unitName, e.getMessage(), e);
             throw new Exception("Failed to upsert search unit in etcd", e);
         }
     }
-    
+
     public void updateSearchUnit(String clusterId, SearchUnit searchUnit) throws Exception {
         log.debug("Updating search unit {} in etcd", searchUnit.getName());
-        
+
         try {
             String unitPath = pathResolver.getSearchUnitConfPath(clusterId, searchUnit.getName());
             storeObjectAsJson(unitPath, searchUnit);
-            
+
             log.debug("Successfully updated search unit {} in etcd", searchUnit.getName());
-            
+
         } catch (Exception e) {
             log.error("Failed to update search unit {} in etcd: {}", searchUnit.getName(), e.getMessage(), e);
             throw new Exception("Failed to update search unit in etcd", e);
         }
     }
-    
+
     public void deleteSearchUnit(String clusterId, String unitName) throws Exception {
         log.info("Deleting search unit {} (all state: conf, goal-state, actual-state) from etcd", unitName);
-        
+
         try {
             // Delete the entire search unit node prefix to remove conf, goal-state, and actual-state
             String unitPrefix = pathResolver.getSearchUnitsPrefix(clusterId) + PATH_DELIMITER + unitName;
-            
+
             ByteSequence prefixBytes = ByteSequence.from(unitPrefix + PATH_DELIMITER, UTF_8);
-            kvClient.delete(
-                prefixBytes,
-                DeleteOption.builder().withPrefix(prefixBytes).build()
-            ).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            try (KV kvClient = etcdClient.getKVClient()) {
+                kvClient.delete(prefixBytes, DeleteOption.builder().withPrefix(prefixBytes).build())
+                        .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
             log.info("Successfully deleted search unit {} and all its state from etcd", unitName);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete search unit {} from etcd: {}", unitName, e.getMessage(), e);
             throw new Exception("Failed to delete search unit from etcd", e);
         }
     }
-    
+
     // =================================================================
     // SEARCH UNIT STATE OPERATIONS (for discovery)
     // =================================================================
-    
+
     public Map<String, SearchUnitActualState> getAllSearchUnitActualStates(String clusterId) throws Exception {
         log.info("Getting all search unit actual states from etcd for cluster '{}' in getAllSearchUnitActualStates", clusterId);
 
         String prefix = pathResolver.getSearchUnitsPrefix(clusterId);
         log.info("Querying etcd for actual-states with clusterId: '{}', prefix: '{}'", clusterId, prefix);
-        
-        GetOption option = GetOption.newBuilder()
-                .withPrefix(ByteSequence.from(prefix, UTF_8))
-                .build();
-        
-        CompletableFuture<GetResponse> getFuture = kvClient.get(
-                ByteSequence.from(prefix, UTF_8), option);
-        GetResponse response = getFuture.get();
-        
+
+        GetOption option = GetOption.newBuilder().withPrefix(ByteSequence.from(prefix, UTF_8)).build();
+
+        GetResponse response;
+        try (KV kvClient = etcdClient.getKVClient()) {
+            CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(prefix, UTF_8), option);
+            response = getFuture.get();
+        }
+
         log.info("Etcd returned {} total keys for prefix '{}'", response.getKvs().size(), prefix);
-        
+
         Map<String, SearchUnitActualState> actualStates = new HashMap<>();
-        
+
         for (KeyValue kv : response.getKvs()) {
             String key = kv.getKey().toString(UTF_8);
             String json = kv.getValue().toString(UTF_8);
             log.info("Processing etcd key: {}", key);
-            
+
             // Parse key to get unit name and check if it's an actual-state key
             // relativePath example: /unit-name/actual-state
             String relativePath = key.substring(prefix.length());
@@ -495,88 +495,102 @@ public class EtcdMetadataStore implements MetadataStore {
 
         return actualStates;
     }
-    
+
     public SearchUnitGoalState getSearchUnitGoalState(String clusterId, String unitName) throws Exception {
         String key = pathResolver.getSearchUnitGoalStatePath(clusterId, unitName);
-        CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(key, UTF_8));
-        GetResponse response = getFuture.get();
-        
+        GetResponse response;
+        try (KV kvClient = etcdClient.getKVClient()) {
+            CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(key, UTF_8));
+            response = getFuture.get();
+        }
+
         if (response.getKvs().isEmpty()) {
             return null;
         }
-        
+
         String json = response.getKvs().getFirst().getValue().toString(UTF_8);
 
         return XContentUtils.readValue(json, SearchUnitGoalState::fromXContent);
     }
-    
+
     public SearchUnitActualState getSearchUnitActualState(String clusterId, String unitName) throws Exception {
         String key = pathResolver.getSearchUnitActualStatePath(clusterId, unitName);
-        CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(key, UTF_8));
-        GetResponse response = getFuture.get();
-        
+        GetResponse response;
+        try (KV kvClient = etcdClient.getKVClient()) {
+            CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(key, UTF_8));
+            response = getFuture.get();
+        }
+
         if (response.getKvs().isEmpty()) {
             return null;
         }
-        
+
         String json = response.getKvs().getFirst().getValue().toString(UTF_8);
 
         return XContentUtils.readValue(json, SearchUnitActualState::fromXContent);
     }
-    
+
     public void setSearchUnitGoalState(String clusterId, String unitName, SearchUnitGoalState goalState) throws Exception {
         String key = pathResolver.getSearchUnitGoalStatePath(clusterId, unitName);
         String json = XContentUtils.writeValue(goalState);
-        
+
         // Use Compare-And-Swap (CAS) pattern with mod_revision for thread-safe updates
         ByteSequence keyBytes = ByteSequence.from(key, UTF_8);
         ByteSequence valueBytes = ByteSequence.from(json, UTF_8);
-        
-        // Get current revision to use in CAS operation
-        GetResponse getResponse = kvClient.get(keyBytes).get();
-        long currentRevision = 0;
-        if (getResponse.getCount() > 0) {
-            currentRevision = getResponse.getKvs().getFirst().getModRevision();
+
+        TxnResponse txnResponse;
+        try (KV kvClient = etcdClient.getKVClient()) {
+            // Get current revision to use in CAS operation
+            GetResponse getResponse = kvClient.get(keyBytes).get();
+            long currentRevision = 0;
+            if (getResponse.getCount() > 0) {
+                currentRevision = getResponse.getKvs().getFirst().getModRevision();
+            }
+
+            // Perform atomic CAS operation
+            txnResponse = kvClient.txn()
+                    .If(new Cmp(keyBytes, Cmp.Op.EQUAL, CmpTarget.modRevision(currentRevision)))
+                    .Then(Op.put(keyBytes, valueBytes, PutOption.DEFAULT))
+                    .Else(Op.get(keyBytes, GetOption.DEFAULT))
+                    .commit()
+                    .get();
         }
-        
-        // Perform atomic CAS operation
-        TxnResponse txnResponse = kvClient.txn()
-            .If(new Cmp(keyBytes, Cmp.Op.EQUAL, CmpTarget.modRevision(currentRevision)))
-            .Then(Op.put(keyBytes, valueBytes, PutOption.DEFAULT))
-            .Else(Op.get(keyBytes, GetOption.DEFAULT))
-            .commit()
-            .get();
-            
+
         if (!txnResponse.isSucceeded()) {
             throw new RuntimeException("Failed to update goal state for " + unitName + " due to concurrent modification. Please retry.");
         }
-        
+
         log.debug("Successfully set goal state for search unit {} using CAS", unitName);
     }
-    
+
     public void setSearchUnitActualState(String clusterId, String unitName, SearchUnitActualState actualState) throws Exception {
         String key = pathResolver.getSearchUnitActualStatePath(clusterId, unitName);
         String json = XContentUtils.writeValue(actualState);
-        
-        var putFuture = kvClient.put(ByteSequence.from(key, UTF_8), ByteSequence.from(json, UTF_8));
-        putFuture.get();
-        
+
+        try (KV kvClient = etcdClient.getKVClient()) {
+            var putFuture = kvClient.put(ByteSequence.from(key, UTF_8), ByteSequence.from(json, UTF_8));
+            putFuture.get();
+        }
+
         log.debug("Successfully set actual state for search unit {}", unitName);
     }
 
     public List<String> getAllNodesWithGoalStates(String clusterId) throws Exception {
         log.debug("Getting all nodes with goal states from etcd");
-        
+
         String prefix = pathResolver.getSearchUnitsPrefix(clusterId);
         GetOption option = GetOption.newBuilder().withPrefix(ByteSequence.from(prefix, UTF_8)).build();
-        CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(prefix, UTF_8), option);
-        GetResponse response = getFuture.get();
-        
+        GetResponse response;
+        try (KV kvClient = etcdClient.getKVClient()) {
+            CompletableFuture<GetResponse> getFuture = kvClient.get(ByteSequence.from(prefix, UTF_8), option);
+            response = getFuture.get();
+        }
+
         List<String> nodeNames = new ArrayList<>();
-        
+
         for (KeyValue kv : response.getKvs()) {
             String key = kv.getKey().toString(UTF_8);
-            
+
             String relativePath = key.substring(prefix.length());
             if (relativePath.startsWith("/")) {
                 relativePath = relativePath.substring(1);
@@ -588,45 +602,45 @@ public class EtcdMetadataStore implements MetadataStore {
                 log.debug("Found goal-state for node: {} (key: {})", unitName, key);
             }
         }
-        
+
         log.debug("Retrieved {} nodes with goal states from etcd", nodeNames.size());
         return nodeNames;
     }
-    
+
     public void deleteActualAllocation(String clusterId, String indexName, String shardId) throws Exception {
         log.info("Deleting actual allocation for {}/{} from etcd", indexName, shardId);
-        
+
         try {
             String actualAllocationPath = pathResolver.getShardActualAllocationPath(clusterId, indexName, shardId);
             executeEtcdDelete(actualAllocationPath);
-            
+
             log.info("Successfully deleted actual allocation for {}/{} from etcd", indexName, shardId);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete actual allocation for {}/{} from etcd: {}", indexName, shardId, e.getMessage(), e);
             throw new Exception("Failed to delete actual allocation from etcd", e);
         }
     }
-    
+
     @Override
     public Set<String> getAllIndicesWithActualAllocations(String clusterId) throws Exception {
         log.debug("Getting all indices with actual-allocation entries from etcd");
-        
+
         Set<String> indicesWithAllocations = new HashSet<>();
-        
+
         try {
             String indicesPrefix = pathResolver.getIndicesPrefix(clusterId);
             ByteSequence prefixBytes = ByteSequence.from(indicesPrefix, UTF_8);
-            GetOption getOption = GetOption.newBuilder()
-                    .withPrefix(prefixBytes)
-                    .build();
-            
-            GetResponse response = kvClient.get(prefixBytes, getOption)
-                    .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetOption getOption = GetOption.newBuilder().withPrefix(prefixBytes).build();
+
+            GetResponse response;
+            try (KV kvClient = etcdClient.getKVClient()) {
+                response = kvClient.get(prefixBytes, getOption).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+
             for (KeyValue kv : response.getKvs()) {
                 String key = kv.getKey().toString(UTF_8);
-                
+
                 // Look for keys ending with "/actual-allocation"
                 if (key.endsWith("/" + Constants.SUFFIX_ACTUAL_ALLOCATION)) {
                     // Extract index name from key pattern: /cluster/indices/INDEX_NAME/SHARD_ID/actual-allocation
@@ -634,7 +648,7 @@ public class EtcdMetadataStore implements MetadataStore {
                     if (relativePath.startsWith("/")) {
                         relativePath = relativePath.substring(1);
                     }
-                    
+
                     String[] parts = relativePath.split("/");
                     if (parts.length >= 3 && Constants.SUFFIX_ACTUAL_ALLOCATION.equals(parts[2])) {
                         String indexName = parts[0];
@@ -643,10 +657,10 @@ public class EtcdMetadataStore implements MetadataStore {
                     }
                 }
             }
-            
+
             log.debug("Found {} indices with actual-allocation entries in etcd", indicesWithAllocations.size());
             return indicesWithAllocations;
-            
+
         } catch (Exception e) {
             log.error("Failed to get indices with actual allocations from etcd: {}", e.getMessage(), e);
             throw e;
@@ -655,7 +669,7 @@ public class EtcdMetadataStore implements MetadataStore {
     // =================================================================
     // INDEX CONFIGURATIONS OPERATIONS
     // =================================================================
-    
+
     public List<Index> getAllIndexConfigs(String clusterId) throws Exception {
         log.debug("Getting all index configs from etcd");
 
@@ -673,7 +687,12 @@ public class EtcdMetadataStore implements MetadataStore {
                         Index indexConfig = XContentUtils.readValue(indexConfigJson, Index::fromXContent);
                         indexConfigs.add(indexConfig);
                     } catch (Exception parseException) {
-                        log.warn("Failed to parse index config JSON: {}, error: {}, skipping", indexConfigJson, parseException.getMessage(), parseException);
+                        log.warn(
+                            "Failed to parse index config JSON: {}, error: {}, skipping",
+                            indexConfigJson,
+                            parseException.getMessage(),
+                            parseException
+                        );
                     }
                 }
             }
@@ -686,55 +705,55 @@ public class EtcdMetadataStore implements MetadataStore {
             throw new Exception("Failed to retrieve index configs from etcd", e);
         }
     }
-    
+
     public Optional<String> getIndexConfig(String clusterId, String indexName) throws Exception {
         log.debug("Getting index config {} from etcd", indexName);
-        
+
         try {
             String indexPath = pathResolver.getIndexConfPath(clusterId, indexName);
             GetResponse response = executeEtcdGet(indexPath);
-            
+
             if (response.getCount() == 0) {
                 log.debug("Index config {} not found in etcd", indexName);
                 return Optional.empty();
             }
-            
+
             String indexConfigJson = response.getKvs().getFirst().getValue().toString(StandardCharsets.UTF_8);
-            
+
             log.debug("Retrieved index config {} from etcd", indexName);
             return Optional.of(indexConfigJson);
-            
+
         } catch (Exception e) {
             log.error("Failed to get index config {} from etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to retrieve index config from etcd", e);
         }
     }
-    
+
     public String createIndexConfig(String clusterId, String indexName, String indexConfig) throws Exception {
         log.info("Creating index config {} in etcd", indexName);
-        
+
         try {
             String indexPath = pathResolver.getIndexConfPath(clusterId, indexName);
             executeEtcdPut(indexPath, indexConfig);
-            
+
             log.info("Successfully created index config {} in etcd", indexName);
             return indexName;
-            
+
         } catch (Exception e) {
             log.error("Failed to create index config {} in etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to create index config in etcd", e);
         }
     }
-    
+
     public void updateIndexConfig(String clusterId, String indexName, String indexConfig) throws Exception {
         log.debug("Updating index config {} in etcd", indexName);
-        
+
         try {
             String indexPath = pathResolver.getIndexConfPath(clusterId, indexName);
             executeEtcdPut(indexPath, indexConfig);
-            
+
             log.debug("Successfully updated index config {} in etcd", indexName);
-            
+
         } catch (Exception e) {
             log.error("Failed to update index config {} in etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to update index config in etcd", e);
@@ -743,79 +762,85 @@ public class EtcdMetadataStore implements MetadataStore {
 
     public void deleteIndexConfig(String clusterId, String indexName) throws Exception {
         log.info("Deleting index config {} from etcd", indexName);
-        
+
         try {
             String indexPath = pathResolver.getIndexConfPath(clusterId, indexName);
             executeEtcdDelete(indexPath);
-            
+
             log.info("Successfully deleted index config {} from etcd", indexName);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete index config {} from etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to delete index config from etcd", e);
         }
     }
-    
+
     @Override
     public void setIndexMappings(String clusterId, String indexName, String mappings) throws Exception {
         log.debug("Setting index mappings for {} in etcd", indexName);
-        
+
         try {
             String mappingsPath = pathResolver.getIndexMappingsPath(clusterId, indexName);
             executeEtcdPut(mappingsPath, mappings);
-            
+
             log.debug("Successfully set index mappings for {} in etcd", indexName);
-            
+
         } catch (Exception e) {
             log.error("Failed to set index mappings for {} in etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to set index mappings in etcd", e);
         }
     }
-    
+
     @Override
     public TypeMapping getIndexMappings(String clusterId, String indexName) throws Exception {
         log.debug("Getting index mappings for {} from etcd", indexName);
-        
+
         try {
             String mappingsPath = pathResolver.getIndexMappingsPath(clusterId, indexName);
             GetResponse response = executeEtcdGet(mappingsPath);
-            
+
             if (response.getKvs().isEmpty()) {
                 log.debug("No mappings found for index {} in cluster {}", indexName, clusterId);
                 return null;
             }
-            
+
             String mappingsJson = response.getKvs().getFirst().getValue().toString(StandardCharsets.UTF_8);
             log.debug("Retrieved mappings for index {}: {}", indexName, mappingsJson);
-            
+
             // Parse JSON to TypeMapping object
             return XContentUtils.readValue(mappingsJson, TypeMapping::fromXContent);
-            
+
         } catch (Exception e) {
             log.error("Failed to get index mappings for {} from etcd: {}", indexName, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public IndexSettings getIndexSettings(String clusterId, String indexName) throws Exception {
         log.debug("Getting index settings for {} from etcd", indexName);
-        
+
         try {
             String settingsPath = pathResolver.getIndexSettingsPath(clusterId, indexName);
             GetResponse response = executeEtcdGet(settingsPath);
-            
+
             if (response.getCount() == 0) {
                 log.debug("Index settings {} not found in etcd", indexName);
                 return null;
             }
-            
+
             String settingsJson = response.getKvs().getFirst().getValue().toString(StandardCharsets.UTF_8);
             log.debug("Retrieved index settings JSON for {}: {}", indexName, settingsJson);
-            
+
             // Parse the JSON to check if it has a "settings" wrapper
             IndexSettings settings = null;
-            try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, settingsJson)) {
+            try (
+                XContentParser parser = JsonXContent.jsonXContent.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                    settingsJson
+                )
+            ) {
                 if (parser.nextToken() != XContentParser.Token.START_OBJECT) {
                     throw new ParsingException(parser.getTokenLocation(), "Expected START_OBJECT but found: " + parser.currentToken());
                 }
@@ -836,7 +861,7 @@ public class EtcdMetadataStore implements MetadataStore {
 
             log.debug("Successfully parsed index settings for {}: {}", indexName, settings);
             return settings;
-            
+
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             log.error("Failed to parse index settings JSON for {} from etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to parse index settings JSON from etcd", e);
@@ -845,11 +870,11 @@ public class EtcdMetadataStore implements MetadataStore {
             throw new Exception("Failed to retrieve index settings from etcd", e);
         }
     }
-    
+
     @Override
     public void setIndexSettings(String clusterId, String indexName, String settings) throws Exception {
         log.debug("Setting index settings for {} in etcd", indexName);
-        
+
         try {
             // Wrap settings in "index" key to match Elasticsearch convention
             // Parse the incoming settings JSON and wrap it
@@ -864,38 +889,38 @@ public class EtcdMetadataStore implements MetadataStore {
 
             String settingsPath = pathResolver.getIndexSettingsPath(clusterId, indexName);
             executeEtcdPut(settingsPath, wrappedSettingsJson);
-            
+
             log.debug("Successfully set index settings for {} in etcd (wrapped in 'index' key)", indexName);
-            
+
         } catch (Exception e) {
             log.error("Failed to set index settings for {} in etcd: {}", indexName, e.getMessage(), e);
             throw new Exception("Failed to set index settings in etcd", e);
         }
     }
-    
+
     // =================================================================
     // TEMPLATE OPERATIONS
     // =================================================================
-    
+
     @Override
     public Template getTemplate(String clusterId, String templateName) throws Exception {
         log.debug("Getting template {} from etcd", templateName);
-        
+
         try {
             String templatePath = pathResolver.getTemplateConfPath(clusterId, templateName);
             GetResponse response = executeEtcdGet(templatePath);
-            
+
             if (response.getCount() == 0) {
                 log.debug("Template {} not found in etcd", templateName);
                 throw new IllegalArgumentException("Template '" + templateName + "' not found");
             }
-            
+
             String templateConfigJson = response.getKvs().getFirst().getValue().toString(StandardCharsets.UTF_8);
             Template template = XContentUtils.readValue(templateConfigJson, Template::fromXContent);
-            
+
             log.debug("Retrieved template {} from etcd", templateName);
             return template;
-            
+
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
@@ -903,64 +928,64 @@ public class EtcdMetadataStore implements MetadataStore {
             throw new Exception("Failed to retrieve template from etcd", e);
         }
     }
-    
+
     @Override
     public String createTemplate(String clusterId, String templateName, String templateConfig) throws Exception {
         log.info("Creating template {} in etcd", templateName);
-        
+
         try {
             String templatePath = pathResolver.getTemplateConfPath(clusterId, templateName);
             executeEtcdPut(templatePath, templateConfig);
-            
+
             log.info("Successfully created template {} in etcd", templateName);
             return templateName;
-            
+
         } catch (Exception e) {
             log.error("Failed to create template {} in etcd: {}", templateName, e.getMessage(), e);
             throw new Exception("Failed to create template in etcd", e);
         }
     }
-    
+
     @Override
     public void updateTemplate(String clusterId, String templateName, String templateConfig) throws Exception {
         log.debug("Updating template {} in etcd", templateName);
-        
+
         try {
             String templatePath = pathResolver.getTemplateConfPath(clusterId, templateName);
             executeEtcdPut(templatePath, templateConfig);
-            
+
             log.debug("Successfully updated template {} in etcd", templateName);
-            
+
         } catch (Exception e) {
             log.error("Failed to update template {} in etcd: {}", templateName, e.getMessage(), e);
             throw new Exception("Failed to update template in etcd", e);
         }
     }
-    
+
     @Override
     public void deleteTemplate(String clusterId, String templateName) throws Exception {
         log.info("Deleting template {} from etcd", templateName);
-        
+
         try {
             String templatePath = pathResolver.getTemplateConfPath(clusterId, templateName);
             executeEtcdDelete(templatePath);
-            
+
             log.info("Successfully deleted template {} from etcd", templateName);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete template {} from etcd: {}", templateName, e.getMessage(), e);
             throw new Exception("Failed to delete template from etcd", e);
         }
     }
-    
+
     @Override
     public List<Template> getAllTemplates(String clusterId) throws Exception {
         log.debug("Getting all templates from etcd for cluster {}", clusterId);
-        
+
         try {
             String templatesPrefix = pathResolver.getTemplatesPrefix(clusterId);
             GetResponse response = executeEtcdPrefixQuery(templatesPrefix);
-            
+
             List<Template> templates = new ArrayList<>();
             for (KeyValue kv : response.getKvs()) {
                 String key = kv.getKey().toString(StandardCharsets.UTF_8);
@@ -975,62 +1000,61 @@ public class EtcdMetadataStore implements MetadataStore {
                     }
                 }
             }
-            
+
             log.debug("Retrieved {} templates from etcd for cluster {}", templates.size(), clusterId);
             return templates;
-            
+
         } catch (Exception e) {
             log.error("Failed to get all templates from etcd for cluster {}: {}", clusterId, e.getMessage(), e);
             throw new Exception("Failed to retrieve templates from etcd", e);
         }
     }
-    
+
     // =================================================================
     // CLUSTER OPERATIONS
     // =================================================================
-    
+
     public void initialize() throws Exception {
         log.info("Initialize called - already done in constructor");
-        
+
         // TODO: Single-cluster leader election temporarily disabled
         // Multi-cluster coordination is now handled by MultiClusterManager using distributed locks
         // Each cluster is locked by exactly one controller via etcd's Lock API
         // leaderElection.startElection();
-        
+
         log.info("Skipping single-cluster leader election - using MultiClusterManager for distributed coordination");
     }
-    
-    public void close() throws Exception {
+
+    public void close() throws IOException {
         log.info("Closing etcd metadata store");
-        
+
         try {
             // Shutdown leader election first to avoid errors during etcd client closure
             if (leaderElection != null) {
                 leaderElection.shutdown();
             }
-            
+
             if (etcdClient != null) {
                 etcdClient.close();
                 log.info("etcd client closed successfully");
             }
         } catch (Exception e) {
             log.error("Error closing etcd client: {}", e.getMessage(), e);
-            throw new Exception("Failed to close etcd client", e);
+            throw new IOException("Failed to close etcd client", e);
         }
     }
-    
-    
+
     /**
      * Get the path resolver for external use
      */
     public EtcdPathResolver getPathResolver() {
         return pathResolver;
     }
-    
+
     // =================================================================
     // PRIVATE HELPER METHODS FOR ETCD OPERATIONS
     // =================================================================
-    
+
     /**
      * Executes etcd prefix query to retrieve all keys matching the given prefix
      */
@@ -1038,41 +1062,48 @@ public class EtcdMetadataStore implements MetadataStore {
         // Add trailing slash for etcd prefix queries to ensure precise matching
         String prefixWithSlash = prefix + PATH_DELIMITER;
         ByteSequence prefixBytes = ByteSequence.from(prefixWithSlash, StandardCharsets.UTF_8);
-        return kvClient.get(
-            prefixBytes,
-            GetOption.builder().withPrefix(prefixBytes).build()
-        ).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        try (KV kvClient = etcdClient.getKVClient()) {
+            return kvClient.get(prefixBytes, GetOption.builder().withPrefix(prefixBytes).build())
+                    .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
     }
-    
+
     /**
      * Executes etcd get operation for a single key
      */
     private GetResponse executeEtcdGet(String key) throws Exception {
         ByteSequence keyBytes = ByteSequence.from(key, StandardCharsets.UTF_8);
-        return kvClient.get(keyBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        try (KV kvClient = etcdClient.getKVClient()) {
+            return kvClient.get(keyBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
     }
-    
+
     /**
      * Executes etcd put operation for a key-value pair
      */
     private void executeEtcdPut(String key, String value) throws Exception {
         ByteSequence keyBytes = ByteSequence.from(key, StandardCharsets.UTF_8);
         ByteSequence valueBytes = ByteSequence.from(value, StandardCharsets.UTF_8);
-        kvClient.put(keyBytes, valueBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        try (KV kvClient = etcdClient.getKVClient()) {
+            kvClient.put(keyBytes, valueBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
     }
-    
+
     /**
      * Executes etcd delete operation for a key
      */
     private void executeEtcdDelete(String key) throws Exception {
         ByteSequence keyBytes = ByteSequence.from(key, StandardCharsets.UTF_8);
-        kvClient.delete(keyBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        try (KV kvClient = etcdClient.getKVClient()) {
+            kvClient.delete(keyBytes).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        }
     }
-    
+
     /**
      * Deserializes list of objects from etcd GetResponse
      */
-    private <T, E extends Exception> List<T> deserializeObjectList(GetResponse response, CheckedFunction<XContentParser, T, E> parser) throws Exception {
+    private <T, E extends Exception> List<T> deserializeObjectList(GetResponse response, CheckedFunction<XContentParser, T, E> parser)
+        throws Exception {
         List<T> items = new ArrayList<>();
         for (var kv : response.getKvs()) {
             String json = kv.getValue().toString(StandardCharsets.UTF_8);
@@ -1081,11 +1112,12 @@ public class EtcdMetadataStore implements MetadataStore {
         }
         return items;
     }
-    
+
     /**
      * Deserializes single object from etcd GetResponse
      */
-    private <T, E extends Exception> Optional<T> deserializeObject(GetResponse response, CheckedFunction<XContentParser, T, E> parser) throws Exception {
+    private <T, E extends Exception> Optional<T> deserializeObject(GetResponse response, CheckedFunction<XContentParser, T, E> parser)
+        throws Exception {
         if (response.getCount() == 0) {
             return Optional.empty();
         }
@@ -1093,23 +1125,25 @@ public class EtcdMetadataStore implements MetadataStore {
         T item = XContentUtils.readValue(json, parser);
         return Optional.of(item);
     }
-    
+
     /**
      * Retrieves all objects of a specific type using etcd prefix query
      */
-    private <T, E extends Exception> List<T> getAllObjectsByPrefix(String prefix, CheckedFunction<XContentParser, T, E> parser) throws Exception {
+    private <T, E extends Exception> List<T> getAllObjectsByPrefix(String prefix, CheckedFunction<XContentParser, T, E> parser)
+        throws Exception {
         GetResponse response = executeEtcdPrefixQuery(prefix);
         return deserializeObjectList(response, parser);
     }
-    
+
     /**
      * Retrieves single object by etcd path
      */
-    private <T, E extends Exception> Optional<T> getObjectByPath(String path, CheckedFunction<XContentParser, T, E> parser) throws Exception {
+    private <T, E extends Exception> Optional<T> getObjectByPath(String path, CheckedFunction<XContentParser, T, E> parser)
+        throws Exception {
         GetResponse response = executeEtcdGet(path);
         return deserializeObject(response, parser);
     }
-    
+
     /**
      * Stores object as JSON at the specified etcd path
      */
@@ -1118,118 +1152,111 @@ public class EtcdMetadataStore implements MetadataStore {
         executeEtcdPut(path, json);
     }
 
-     // =================================================================
+    // =================================================================
     // LEADER ELECTION OPERATIONS
     // =================================================================
-    
+
     /**
      * Get the leader election instance for direct access.
-     * 
+     *
      * @return the LeaderElection instance
      */
     public LeaderElection getLeaderElection() {
         return leaderElection;
     }
-    
+
     /**
      * Check if this node is currently the leader.
-     * 
+     *
      * @return true if this node is the leader, false otherwise
      */
     public boolean isLeader() {
         return leaderElection.isLeader();
     }
-    
+
     // =================================================================
     // SHARD ALLOCATION OPERATIONS
     // =================================================================
-    
+
     @Override
     public ShardAllocation getPlannedAllocation(String clusterId, String indexName, String shardId) throws Exception {
         String path = pathResolver.getShardPlannedAllocationPath(clusterId, indexName, shardId);
-        
+
         try {
-            ByteSequence key = ByteSequence.from(path, UTF_8);
-            GetResponse response = kvClient.get(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse response = executeEtcdGet(path);
+
             if (response.getKvs().isEmpty()) {
                 return null; // No planned allocation exists
             }
-            
+
             String json = response.getKvs().getFirst().getValue().toString(UTF_8);
             return XContentUtils.readValue(json, ShardAllocation::fromXContent);
-            
+
         } catch (Exception e) {
             log.error("Failed to get planned allocation for shard {}/{}: {}", indexName, shardId, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public void setPlannedAllocation(String clusterId, String indexName, String shardId, ShardAllocation allocation) throws Exception {
         String path = pathResolver.getShardPlannedAllocationPath(clusterId, indexName, shardId);
-        
+
         try {
             String json = XContentUtils.writeValue(allocation);
             executeEtcdPut(path, json);
             log.debug("Set planned allocation for shard {}/{}: {}", indexName, shardId, allocation);
-            
+
         } catch (Exception e) {
             log.error("Failed to set planned allocation for shard {}/{}: {}", indexName, shardId, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public ShardAllocation getActualAllocation(String clusterId, String indexName, String shardId) throws Exception {
         String path = pathResolver.getShardActualAllocationPath(clusterId, indexName, shardId);
-        
+
         try {
-            ByteSequence key = ByteSequence.from(path, UTF_8);
-            GetResponse response = kvClient.get(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse response = executeEtcdGet(path);
+
             if (response.getKvs().isEmpty()) {
                 return null; // No actual allocation exists
             }
-            
+
             String json = response.getKvs().getFirst().getValue().toString(UTF_8);
             return XContentUtils.readValue(json, ShardAllocation::fromXContent);
-            
+
         } catch (Exception e) {
             log.error("Failed to get actual allocation for shard {}/{}: {}", indexName, shardId, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public void setActualAllocation(String clusterId, String indexName, String shardId, ShardAllocation allocation) throws Exception {
         String path = pathResolver.getShardActualAllocationPath(clusterId, indexName, shardId);
-        
+
         try {
             String json = XContentUtils.writeValue(allocation);
             executeEtcdPut(path, json);
             log.debug("Set actual allocation for shard {}/{}: {}", indexName, shardId, allocation);
-            
+
         } catch (Exception e) {
             log.error("Failed to set actual allocation for shard {}/{}: {}", indexName, shardId, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public List<ShardAllocation> getAllActualAllocations(String clusterId, String indexName) throws Exception {
         String indexPrefix = pathResolver.getIndicesPrefix(clusterId) + PATH_DELIMITER + indexName;
-        
+
         try {
             List<ShardAllocation> allocations = new ArrayList<>();
-            ByteSequence prefixBytes = ByteSequence.from(indexPrefix, UTF_8);
-            GetOption getOption = GetOption.newBuilder()
-                    .withPrefix(prefixBytes)
-                    .build();
-            
-            GetResponse response = kvClient.get(prefixBytes, getOption)
-                    .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+
+            GetResponse response = executeEtcdPrefixQuery(indexPrefix);
+
             for (KeyValue kv : response.getKvs()) {
                 String key = kv.getKey().toString(UTF_8);
                 // Only include keys that end with "/actual-allocation"
@@ -1239,50 +1266,49 @@ public class EtcdMetadataStore implements MetadataStore {
                     allocations.add(allocation);
                 }
             }
-            
+
             log.debug("Retrieved {} actual allocations for index {}", allocations.size(), indexName);
             return allocations;
-            
+
         } catch (Exception e) {
             log.error("Failed to get actual allocations for index {}: {}", indexName, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     // =================================================================
     // COORDINATOR GOAL STATE OPERATIONS
     // =================================================================
-    
+
     @Override
     public CoordinatorGoalState getCoordinatorGoalState(String clusterId) throws Exception {
         String path = pathResolver.getCoordinatorGoalStatePath(clusterId, coordinatorGoalStateGroup, coordinatorGoalStateUnit);
-        
+
         try {
-            ByteSequence key = ByteSequence.from(path, UTF_8);
-            GetResponse response = kvClient.get(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse response =  executeEtcdGet(path);
+
             if (response.getKvs().isEmpty()) {
                 return null; // No coordinator goal state exists
             }
-            
+
             String json = response.getKvs().getFirst().getValue().toString(UTF_8);
             return XContentUtils.readValue(json, CoordinatorGoalState::fromXContent);
-            
+
         } catch (Exception e) {
             log.error("Failed to get coordinator goal state: {}", e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public void setCoordinatorGoalState(String clusterId, CoordinatorGoalState goalState) throws Exception {
         String path = pathResolver.getCoordinatorGoalStatePath(clusterId, coordinatorGoalStateGroup, coordinatorGoalStateUnit);
-        
+
         try {
             String json = XContentUtils.writeValue(goalState);
             executeEtcdPut(path, json);
             log.debug("Set coordinator goal state: {}", goalState);
-            
+
         } catch (Exception e) {
             log.error("Failed to set coordinator goal state: {}", e.getMessage(), e);
             throw e;
@@ -1299,87 +1325,86 @@ public class EtcdMetadataStore implements MetadataStore {
         if (searchUnit != null && !searchUnit.isBlank()) {
             this.coordinatorGoalStateUnit = searchUnit;
         }
-        log.info("Coordinator goal state path configured to group='{}', unit='{}'", this.coordinatorGoalStateGroup, this.coordinatorGoalStateUnit);
+        log.info(
+            "Coordinator goal state path configured to group='{}', unit='{}'",
+            this.coordinatorGoalStateGroup,
+            this.coordinatorGoalStateUnit
+        );
     }
-    
+
     // =================================================================
     // ALIAS CONFIGURATION OPERATIONS
     // =================================================================
-    
+
     @Override
     public Alias getAlias(String clusterId, String aliasName) throws Exception {
         String path = pathResolver.getAliasConfPath(clusterId, aliasName);
-        
+
         try {
-            ByteSequence key = ByteSequence.from(path, UTF_8);
-            GetResponse response = kvClient.get(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse response = executeEtcdGet(path);
+
             if (response.getKvs().isEmpty()) {
                 return null;
             }
-            
+
             String json = response.getKvs().getFirst().getValue().toString(UTF_8);
             return XContentUtils.readValue(json, Alias::fromXContent);
-            
+
         } catch (Exception e) {
             log.error("Failed to get alias for '{}': {}", aliasName, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public void setAlias(String clusterId, String aliasName, Alias alias) throws Exception {
         String path = pathResolver.getAliasConfPath(clusterId, aliasName);
-        
+
         try {
             String json = XContentUtils.writeValue(alias);
             executeEtcdPut(path, json);
             log.debug("Set alias for '{}': {}", aliasName, alias);
-            
+
         } catch (Exception e) {
             log.error("Failed to set alias for '{}': {}", aliasName, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public void deleteAlias(String clusterId, String aliasName) throws Exception {
         String path = pathResolver.getAliasConfPath(clusterId, aliasName);
-        
+
         try {
             ByteSequence key = ByteSequence.from(path, UTF_8);
-            kvClient.delete(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            try (KV kvClient = etcdClient.getKVClient()) {
+                kvClient.delete(key).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
             log.info("Deleted alias for '{}'", aliasName);
-            
+
         } catch (Exception e) {
             log.error("Failed to delete alias for '{}': {}", aliasName, e.getMessage(), e);
             throw e;
         }
     }
-    
+
     @Override
     public List<Alias> getAllAliases(String clusterId) throws Exception {
         String prefix = pathResolver.getAliasesPrefix(clusterId);
-        
+
         try {
-            ByteSequence prefixKey = ByteSequence.from(prefix + "/", UTF_8);
-            GetOption option = GetOption.builder()
-                .withPrefix(prefixKey)
-                .build();
-            
-            GetResponse response = kvClient.get(prefixKey, option)
-                .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse response = executeEtcdPrefixQuery(prefix);
+
             List<Alias> aliases = new ArrayList<>();
             for (KeyValue kv : response.getKvs()) {
                 String json = kv.getValue().toString(UTF_8);
                 Alias alias = XContentUtils.readValue(json, Alias::fromXContent);
                 aliases.add(alias);
             }
-            
+
             log.debug("Retrieved {} aliases for cluster '{}'", aliases.size(), clusterId);
             return aliases;
-            
+
         } catch (Exception e) {
             log.error("Failed to get all aliases: {}", e.getMessage(), e);
             throw e;
@@ -1387,27 +1412,27 @@ public class EtcdMetadataStore implements MetadataStore {
     }
 
     @Override
-    public void deletePrefix(String clusterId, String prefix) throws Exception {
+    public void deletePrefix(String prefix) throws Exception {
         log.debug("Deleting all keys with prefix {} in etcd", prefix);
 
         try {
             // Add trailing slash for etcd prefix queries to ensure precise matching
             String prefixWithSlash = prefix + PATH_DELIMITER;
             ByteSequence prefixBytes = ByteSequence.from(prefixWithSlash, StandardCharsets.UTF_8);
-            
+
             // Use etcd delete with prefix option
-            kvClient.delete(
-                prefixBytes,
-                DeleteOption.newBuilder().withPrefix(prefixBytes).build()
-            ).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            try (KV kvClient = etcdClient.getKVClient()) {
+                kvClient.delete(prefixBytes, DeleteOption.newBuilder().withPrefix(prefixBytes).build())
+                        .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+
             log.debug("Successfully deleted all keys with prefix {} in etcd", prefix);
         } catch (Exception e) {
             log.error("Failed to delete keys with prefix {} in etcd: {}", prefix, e.getMessage(), e);
             throw new Exception("Failed to delete keys with prefix in etcd", e);
         }
     }
-    
+
     /**
      * Get the controller ID assigned to a cluster.
      */
@@ -1415,17 +1440,22 @@ public class EtcdMetadataStore implements MetadataStore {
     public ClusterControllerAssignment getAssignedController(String clusterId) throws Exception {
         try {
             String assignmentPath = pathResolver.getClusterAssignedControllerPath(clusterId);
-            GetResponse getResponse = kvClient.get(
-                ByteSequence.from(assignmentPath, UTF_8)
-            ).get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            
+            GetResponse getResponse;
+            try (KV kvClient = etcdClient.getKVClient()) {
+                getResponse = kvClient.get(ByteSequence.from(assignmentPath, StandardCharsets.UTF_8))
+                        .get(ETCD_OPERATION_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            }
+
             if (getResponse.getKvs().isEmpty()) {
                 log.debug("No controller assigned to cluster '{}'", clusterId);
                 return null;
             }
-            
+
             String json = getResponse.getKvs().getFirst().getValue().toString(UTF_8);
-            ClusterControllerAssignment clusterControllerAssignment = XContentUtils.readValue(json, ClusterControllerAssignment::fromXContent);
+            ClusterControllerAssignment clusterControllerAssignment = XContentUtils.readValue(
+                    json,
+                    ClusterControllerAssignment::fromXContent
+            );
             log.debug("Cluster '{}' is assigned to controller '{}'", clusterId, clusterControllerAssignment.getController());
             return clusterControllerAssignment;
         } catch (Exception e) {
@@ -1433,34 +1463,34 @@ public class EtcdMetadataStore implements MetadataStore {
             throw new Exception("Failed to get assigned controller: " + e.getMessage(), e);
         }
     }
-    
+
     @Override
     public ClusterInformation.Version getClusterVersion(String clusterId) throws Exception {
         log.debug("Getting cluster version from registry for cluster '{}'", clusterId);
-        
+
         try {
             String clusterRegistryPath = pathResolver.getClusterRegistryPath(clusterId);
             GetResponse response = executeEtcdGet(clusterRegistryPath);
-            
+
             if (response.getKvs().isEmpty()) {
                 log.debug("No cluster version found in registry for cluster '{}'", clusterId);
                 return null;
             }
-            
+
             String json = response.getKvs().getFirst().getValue().toString(StandardCharsets.UTF_8);
             log.debug("Retrieved cluster metadata from registry for cluster '{}': {}", clusterId, json);
-            
+
             // Parse as generic Map to extract version field
             Map<String, Object> metadata = XContentUtils.readMap(json);
-            
+
             // Extract and deserialize the version field
             if (metadata.containsKey("version")) {
                 Map<String, Object> versionObj = (Map<String, Object>) metadata.get("version");
                 return ClusterInformation.Version.fromMap(versionObj);
             }
-            
+
             return null;
-            
+
         } catch (Exception e) {
             log.error("Failed to get cluster version from registry for '{}': {}", clusterId, e.getMessage(), e);
             throw e;

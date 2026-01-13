@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.config.Constants;
@@ -22,7 +26,7 @@ public class SearchUnitActualState implements ToXContentObject {
     private int transportPort;
     private String nodeId;
     private String ephemeralId;
-    
+
     // Resource usage metrics
     private long memoryUsedMB;
     private long memoryMaxMB;
@@ -33,214 +37,212 @@ public class SearchUnitActualState implements ToXContentObject {
     private long diskTotalMB;
     private long diskAvailableMB;
     private int cpuUsedPercent;
-    
+
     // Heartbeat and timing
     private long heartbeatIntervalMillis;
     private long timestamp;
-    
+
     // Shard routing information - the key part for controller logic
     private Map<String, List<ShardRoutingInfo>> nodeRouting; // index-name -> list of shard routing info
-    
+
     // Node role and shard information (populated by worker)
     private String role; // "PRIMARY", "SEARCH_REPLICA", "COORDINATOR"
     private String shardId; // "shard-1", "shard-2", etc.
     private String clusterName; // "search-cluster", "analytics-cluster", etc.
-    
 
-    
     public SearchUnitActualState() {
         this.nodeRouting = new HashMap<>();
     }
-    
+
     public String getNodeName() {
         return nodeName;
     }
-    
+
     public void setNodeName(String nodeName) {
         this.nodeName = nodeName;
     }
-    
+
     public String getAddress() {
         return address;
     }
-    
+
     public void setAddress(String address) {
         this.address = address;
     }
-    
+
     public int getHttpPort() {
         return httpPort;
     }
-    
+
     public void setHttpPort(int httpPort) {
         this.httpPort = httpPort;
     }
-    
+
     public int getTransportPort() {
         return transportPort;
     }
-    
+
     public void setTransportPort(int transportPort) {
         this.transportPort = transportPort;
     }
-    
+
     public String getNodeId() {
         return nodeId;
     }
-    
+
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
     }
-    
+
     public String getEphemeralId() {
         return ephemeralId;
     }
-    
+
     public void setEphemeralId(String ephemeralId) {
         this.ephemeralId = ephemeralId;
     }
-    
+
     public long getMemoryUsedMB() {
         return memoryUsedMB;
     }
-    
+
     public void setMemoryUsedMB(long memoryUsedMB) {
         this.memoryUsedMB = memoryUsedMB;
     }
-    
+
     public long getMemoryMaxMB() {
         return memoryMaxMB;
     }
-    
+
     public void setMemoryMaxMB(long memoryMaxMB) {
         this.memoryMaxMB = memoryMaxMB;
     }
-    
+
     public int getMemoryUsedPercent() {
         return memoryUsedPercent;
     }
-    
+
     public void setMemoryUsedPercent(int memoryUsedPercent) {
         this.memoryUsedPercent = memoryUsedPercent;
     }
-    
+
     public long getHeapUsedMB() {
         return heapUsedMB;
     }
-    
+
     public void setHeapUsedMB(long heapUsedMB) {
         this.heapUsedMB = heapUsedMB;
     }
-    
+
     public long getHeapMaxMB() {
         return heapMaxMB;
     }
-    
+
     public void setHeapMaxMB(long heapMaxMB) {
         this.heapMaxMB = heapMaxMB;
     }
-    
+
     public int getHeapUsedPercent() {
         return heapUsedPercent;
     }
-    
+
     public void setHeapUsedPercent(int heapUsedPercent) {
         this.heapUsedPercent = heapUsedPercent;
     }
-    
+
     public long getDiskTotalMB() {
         return diskTotalMB;
     }
-    
+
     public void setDiskTotalMB(long diskTotalMB) {
         this.diskTotalMB = diskTotalMB;
     }
-    
+
     public long getDiskAvailableMB() {
         return diskAvailableMB;
     }
-    
+
     public void setDiskAvailableMB(long diskAvailableMB) {
         this.diskAvailableMB = diskAvailableMB;
     }
-    
+
     public int getCpuUsedPercent() {
         return cpuUsedPercent;
     }
-    
+
     public void setCpuUsedPercent(int cpuUsedPercent) {
         this.cpuUsedPercent = cpuUsedPercent;
     }
-    
+
     public long getHeartbeatIntervalMillis() {
         return heartbeatIntervalMillis;
     }
-    
+
     public void setHeartbeatIntervalMillis(long heartbeatIntervalMillis) {
         this.heartbeatIntervalMillis = heartbeatIntervalMillis;
     }
-    
+
     public long getTimestamp() {
         return timestamp;
     }
-    
+
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
     }
-    
+
     public Map<String, List<ShardRoutingInfo>> getNodeRouting() {
         return nodeRouting;
     }
-    
+
     public void setNodeRouting(Map<String, List<ShardRoutingInfo>> nodeRouting) {
         this.nodeRouting = nodeRouting;
     }
-    
+
     public String getRole() {
         return role;
     }
-    
+
     public void setRole(String role) {
         this.role = role;
     }
-    
+
     public String getShardId() {
         return shardId;
     }
-    
+
     public void setShardId(String shardId) {
         this.shardId = shardId;
     }
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
     }
-    
+
     // ========== UTILITY METHODS ==========
-    
+
     /**
      * Determine if the search unit is healthy based on node state
      */
     public boolean isHealthy() {
         // Consider node healthy if memory and disk usage are reasonable
         // TODO: come up with more comprehensive health check logic
-        return memoryUsedPercent < Constants.HEALTH_CHECK_MEMORY_THRESHOLD_PERCENT 
+        return memoryUsedPercent < Constants.HEALTH_CHECK_MEMORY_THRESHOLD_PERCENT
             && diskAvailableMB > Constants.HEALTH_CHECK_DISK_THRESHOLD_MB;
     }
-    
+
     /**
      * Determines the admin state of this search unit based on its health status.
-     * 
+     *
      * @return NORMAL if the unit is healthy, DRAIN if unhealthy
      */
     public String deriveAdminState() {
         return isHealthy() ? Constants.ADMIN_STATE_NORMAL : Constants.ADMIN_STATE_DRAIN;
     }
-    
+
     /**
      * Derive node state directly as the final status representation
      * Determined by the health of the node AND the presence of active shards
@@ -252,20 +254,20 @@ public class SearchUnitActualState implements ToXContentObject {
         if (!isHealthy()) {
             return HealthState.RED;
         }
-        
+
         // Then check routing info for active shards
         if (nodeRouting != null && !nodeRouting.isEmpty()) {
-            boolean hasActiveShards = nodeRouting.values().stream()
-                    .flatMap(List::stream)
-                    .anyMatch(routing -> ShardState.STARTED.equals(routing.getState()));
+            boolean hasActiveShards = nodeRouting.values()
+                .stream()
+                .flatMap(List::stream)
+                .anyMatch(routing -> ShardState.STARTED.equals(routing.getState()));
             return hasActiveShards ? HealthState.GREEN : HealthState.YELLOW;
         }
-        
+
         // If healthy but no routing info (e.g., coordinator nodes), consider it green/active
         return HealthState.GREEN;
     }
 
-    
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -318,7 +320,7 @@ public class SearchUnitActualState implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static SearchUnitActualState fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -436,7 +438,7 @@ public class SearchUnitActualState implements ToXContentObject {
         }
         return searchUnitActualState;
     }
-    
+
     /**
      * Shard routing information for a single shard on this node
      */
@@ -449,80 +451,80 @@ public class SearchUnitActualState implements ToXContentObject {
         private String allocationId;
         private String currentNodeId;
         private String currentNodeName;
-        
+
         public ShardRoutingInfo() {}
-        
+
         public ShardRoutingInfo(int shardId, String role, ShardState state) {
             this.shardId = shardId;
             this.role = role;
             this.state = state;
             this.relocating = false;
         }
-        
+
         public int getShardId() {
             return shardId;
         }
-        
+
         public void setShardId(int shardId) {
             this.shardId = shardId;
         }
-        
+
         public String getRole() {
             return role;
         }
-        
+
         public void setRole(String role) {
             this.role = role;
         }
-        
+
         public ShardState getState() {
             return state;
         }
-        
+
         public void setState(ShardState state) {
             this.state = state;
         }
-        
+
         public boolean isRelocating() {
             return relocating;
         }
-        
+
         public void setRelocating(boolean relocating) {
             this.relocating = relocating;
         }
-        
+
         public String getRelocatingNodeId() {
             return relocatingNodeId;
         }
-        
+
         public void setRelocatingNodeId(String relocatingNodeId) {
             this.relocatingNodeId = relocatingNodeId;
         }
-        
+
         public String getAllocationId() {
             return allocationId;
         }
-        
+
         public void setAllocationId(String allocationId) {
             this.allocationId = allocationId;
         }
-        
+
         public String getCurrentNodeId() {
             return currentNodeId;
         }
-        
+
         public void setCurrentNodeId(String currentNodeId) {
             this.currentNodeId = currentNodeId;
         }
-        
+
         public String getCurrentNodeName() {
             return currentNodeName;
         }
-        
+
         public void setCurrentNodeName(String currentNodeName) {
             this.currentNodeName = currentNodeName;
         }
-        
+
         /**
          * Check if this shard is a primary shard
          * @return true if role is "primary", false otherwise
@@ -530,7 +532,7 @@ public class SearchUnitActualState implements ToXContentObject {
         public boolean isPrimary() {
             return Constants.ROLE_PRIMARY.equalsIgnoreCase(role);
         }
-        
+
         @Override
         public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
             builder.startObject();
@@ -557,7 +559,7 @@ public class SearchUnitActualState implements ToXContentObject {
             builder.endObject();
             return builder;
         }
-        
+
         public static ShardRoutingInfo fromXContent(XContentParser parser) throws IOException {
             if (parser.currentToken() == null) {
                 parser.nextToken();
@@ -613,62 +615,80 @@ public class SearchUnitActualState implements ToXContentObject {
             }
             return shardRoutingInfo;
         }
-        
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             if (obj == null || getClass() != obj.getClass()) return false;
             ShardRoutingInfo that = (ShardRoutingInfo) obj;
-            return shardId == that.shardId &&
-                   relocating == that.relocating &&
-                   java.util.Objects.equals(role, that.role) &&
-                   state == that.state &&
-                   java.util.Objects.equals(relocatingNodeId, that.relocatingNodeId) &&
-                   java.util.Objects.equals(allocationId, that.allocationId) &&
-                   java.util.Objects.equals(currentNodeId, that.currentNodeId) &&
-                   java.util.Objects.equals(currentNodeName, that.currentNodeName);
+            return shardId == that.shardId
+                && relocating == that.relocating
+                && java.util.Objects.equals(role, that.role)
+                && state == that.state
+                && java.util.Objects.equals(relocatingNodeId, that.relocatingNodeId)
+                && java.util.Objects.equals(allocationId, that.allocationId)
+                && java.util.Objects.equals(currentNodeId, that.currentNodeId)
+                && java.util.Objects.equals(currentNodeName, that.currentNodeName);
         }
-        
+
         @Override
         public int hashCode() {
-            return java.util.Objects.hash(shardId, role, state, relocating, relocatingNodeId,
-                    allocationId, currentNodeId, currentNodeName);
+            return java.util.Objects.hash(shardId, role, state, relocating, relocatingNodeId, allocationId, currentNodeId, currentNodeName);
         }
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         SearchUnitActualState that = (SearchUnitActualState) obj;
-        return httpPort == that.httpPort &&
-               transportPort == that.transportPort &&
-               memoryUsedMB == that.memoryUsedMB &&
-               memoryMaxMB == that.memoryMaxMB &&
-               memoryUsedPercent == that.memoryUsedPercent &&
-               heapUsedMB == that.heapUsedMB &&
-               heapMaxMB == that.heapMaxMB &&
-               heapUsedPercent == that.heapUsedPercent &&
-               diskTotalMB == that.diskTotalMB &&
-               diskAvailableMB == that.diskAvailableMB &&
-               cpuUsedPercent == that.cpuUsedPercent &&
-               heartbeatIntervalMillis == that.heartbeatIntervalMillis &&
-               timestamp == that.timestamp &&
-               java.util.Objects.equals(nodeName, that.nodeName) &&
-               java.util.Objects.equals(address, that.address) &&
-               java.util.Objects.equals(nodeId, that.nodeId) &&
-               java.util.Objects.equals(ephemeralId, that.ephemeralId) &&
-               java.util.Objects.equals(nodeRouting, that.nodeRouting) &&
-               java.util.Objects.equals(role, that.role) &&
-               java.util.Objects.equals(shardId, that.shardId) &&
-               java.util.Objects.equals(clusterName, that.clusterName);
+        return httpPort == that.httpPort
+            && transportPort == that.transportPort
+            && memoryUsedMB == that.memoryUsedMB
+            && memoryMaxMB == that.memoryMaxMB
+            && memoryUsedPercent == that.memoryUsedPercent
+            && heapUsedMB == that.heapUsedMB
+            && heapMaxMB == that.heapMaxMB
+            && heapUsedPercent == that.heapUsedPercent
+            && diskTotalMB == that.diskTotalMB
+            && diskAvailableMB == that.diskAvailableMB
+            && cpuUsedPercent == that.cpuUsedPercent
+            && heartbeatIntervalMillis == that.heartbeatIntervalMillis
+            && timestamp == that.timestamp
+            && java.util.Objects.equals(nodeName, that.nodeName)
+            && java.util.Objects.equals(address, that.address)
+            && java.util.Objects.equals(nodeId, that.nodeId)
+            && java.util.Objects.equals(ephemeralId, that.ephemeralId)
+            && java.util.Objects.equals(nodeRouting, that.nodeRouting)
+            && java.util.Objects.equals(role, that.role)
+            && java.util.Objects.equals(shardId, that.shardId)
+            && java.util.Objects.equals(clusterName, that.clusterName);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(nodeName, address, httpPort, transportPort, nodeId, ephemeralId,
-                memoryUsedMB, memoryMaxMB, memoryUsedPercent, heapUsedMB, heapMaxMB, heapUsedPercent,
-                diskTotalMB, diskAvailableMB, cpuUsedPercent, heartbeatIntervalMillis, timestamp,
-                nodeRouting, role, shardId, clusterName);
+        return java.util.Objects.hash(
+            nodeName,
+            address,
+            httpPort,
+            transportPort,
+            nodeId,
+            ephemeralId,
+            memoryUsedMB,
+            memoryMaxMB,
+            memoryUsedPercent,
+            heapUsedMB,
+            heapMaxMB,
+            heapUsedPercent,
+            diskTotalMB,
+            diskAvailableMB,
+            cpuUsedPercent,
+            heartbeatIntervalMillis,
+            timestamp,
+            nodeRouting,
+            role,
+            shardId,
+            clusterName
+        );
     }
 }

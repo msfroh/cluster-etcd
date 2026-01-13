@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -25,9 +21,18 @@ public class SearchUnitGoalStateTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         SearchUnitGoalState searchUnitGoalState = new SearchUnitGoalState();
 
-        BytesReference bytesRef = XContentHelper.toXContent(searchUnitGoalState, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            searchUnitGoalState,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         SearchUnitGoalState deserializedSearchUnitGoalState = SearchUnitGoalState.fromXContent(parser);
         assertEquals(searchUnitGoalState, deserializedSearchUnitGoalState);
     }
@@ -46,11 +51,19 @@ public class SearchUnitGoalStateTests extends OpenSearchTestCase {
         searchUnitGoalState.setLastUpdated("2026-01-12T10:00:00Z");
         searchUnitGoalState.setVersion(5);
 
-        BytesReference bytesRef = XContentHelper.toXContent(searchUnitGoalState, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            searchUnitGoalState,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         SearchUnitGoalState deserializedSearchUnitGoalState = SearchUnitGoalState.fromXContent(parser);
         assertEquals(searchUnitGoalState, deserializedSearchUnitGoalState);
     }
 }
-

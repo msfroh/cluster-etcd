@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -13,16 +17,15 @@ import java.util.List;
  * IndexShardProgress tracks the progress of an index-shard during rolling updates
  */
 public class IndexShardProgress implements ToXContentObject {
-    
+
     private String indexShard; // e.g., "index1/shard0"
     private int goalStateUpdatedCount; // Number of nodes with goal state updated
     private int actualStateConvergedCount; // Number of nodes with actual state converged
     private int totalNodes; // Total number of nodes for this index-shard
     private List<String> updatedNodes = new ArrayList<>(); // Nodes whose goal state has been updated
-    
-    public IndexShardProgress() {
-    }
-    
+
+    public IndexShardProgress() {}
+
     public IndexShardProgress(String indexShard, int goalStateUpdatedCount, int actualStateConvergedCount, int totalNodes) {
         this.indexShard = indexShard;
         this.goalStateUpdatedCount = goalStateUpdatedCount;
@@ -30,84 +33,89 @@ public class IndexShardProgress implements ToXContentObject {
         this.totalNodes = totalNodes;
         this.updatedNodes = new ArrayList<>();
     }
-    
-    public IndexShardProgress(String indexShard, int goalStateUpdatedCount, int actualStateConvergedCount, 
-                             int totalNodes, List<String> updatedNodes) {
+
+    public IndexShardProgress(
+        String indexShard,
+        int goalStateUpdatedCount,
+        int actualStateConvergedCount,
+        int totalNodes,
+        List<String> updatedNodes
+    ) {
         this.indexShard = indexShard;
         this.goalStateUpdatedCount = goalStateUpdatedCount;
         this.actualStateConvergedCount = actualStateConvergedCount;
         this.totalNodes = totalNodes;
         this.updatedNodes = updatedNodes;
     }
-    
+
     public String getIndexShard() {
         return indexShard;
     }
-    
+
     public void setIndexShard(String indexShard) {
         this.indexShard = indexShard;
     }
-    
+
     public int getGoalStateUpdatedCount() {
         return goalStateUpdatedCount;
     }
-    
+
     public void setGoalStateUpdatedCount(int goalStateUpdatedCount) {
         this.goalStateUpdatedCount = goalStateUpdatedCount;
     }
-    
+
     public int getActualStateConvergedCount() {
         return actualStateConvergedCount;
     }
-    
+
     public void setActualStateConvergedCount(int actualStateConvergedCount) {
         this.actualStateConvergedCount = actualStateConvergedCount;
     }
-    
+
     public int getTotalNodes() {
         return totalNodes;
     }
-    
+
     public void setTotalNodes(int totalNodes) {
         this.totalNodes = totalNodes;
     }
-    
+
     public List<String> getUpdatedNodes() {
         return updatedNodes;
     }
-    
+
     public void setUpdatedNodes(List<String> updatedNodes) {
         this.updatedNodes = updatedNodes;
     }
-    
+
     /**
      * Get the number of nodes currently in transit (goal updated but not converged)
      */
     public int getTransitNodesCount() {
         return goalStateUpdatedCount - actualStateConvergedCount;
     }
-    
+
     /**
      * Get the percentage of nodes currently in transit
      */
     public double getTransitPercentage() {
         return totalNodes > 0 ? (double) getTransitNodesCount() / totalNodes : 0.0;
     }
-    
+
     /**
      * Check if all nodes have converged
      */
     public boolean isConverged() {
         return goalStateUpdatedCount == totalNodes && actualStateConvergedCount == totalNodes;
     }
-    
+
     /**
      * Check if we can update more nodes (under the transit limit)
      */
     public boolean canUpdateMoreNodes(double maxTransitPercentage) {
         return getTransitPercentage() < maxTransitPercentage;
     }
-    
+
     /**
      * Get the number of available slots for updates
      */
@@ -116,7 +124,7 @@ public class IndexShardProgress implements ToXContentObject {
         int currentTransitNodes = getTransitNodesCount();
         return Math.max(0, maxTransitNodes - currentTransitNodes);
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -132,7 +140,7 @@ public class IndexShardProgress implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static IndexShardProgress fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -187,22 +195,21 @@ public class IndexShardProgress implements ToXContentObject {
         }
         return indexShardProgress;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         IndexShardProgress that = (IndexShardProgress) obj;
-        return goalStateUpdatedCount == that.goalStateUpdatedCount &&
-               actualStateConvergedCount == that.actualStateConvergedCount &&
-               totalNodes == that.totalNodes &&
-               java.util.Objects.equals(indexShard, that.indexShard) &&
-               java.util.Objects.equals(updatedNodes, that.updatedNodes);
+        return goalStateUpdatedCount == that.goalStateUpdatedCount
+            && actualStateConvergedCount == that.actualStateConvergedCount
+            && totalNodes == that.totalNodes
+            && java.util.Objects.equals(indexShard, that.indexShard)
+            && java.util.Objects.equals(updatedNodes, that.updatedNodes);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(indexShard, goalStateUpdatedCount, actualStateConvergedCount,
-                totalNodes, updatedNodes);
+        return java.util.Objects.hash(indexShard, goalStateUpdatedCount, actualStateConvergedCount, totalNodes, updatedNodes);
     }
 }

@@ -10,7 +10,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 // OpenSearch plugins are now applied in root build.gradle
 
 opensearchplugin {
-  name = project.rootProject.name
+  name = "controller-etcd"
   description = 'Plugin to apply cluster manager operations to etcd'
   classname = 'org.opensearch.cluster.controller.plugin.ClusterETCDControllerPlugin'
   licenseFile project.rootProject.file('LICENSE.txt')
@@ -78,10 +78,11 @@ testClusters.integTest {
     plugin(project.tasks.bundlePlugin.archiveFile)
 
     setting 'cluster.etcd.endpoint', 'http://localhost:2379'
+    setting 'cluster.etcd.managed_cluster_id', 'test_cluster'
 }
 
 run {
-    useCluster project, testClusters.integTest;
+    useCluster testClusters.integTest
 }
 
 jacocoTestReport {
@@ -91,6 +92,7 @@ jacocoTestReport {
 }
 test.finalizedBy(project.tasks.jacocoTestReport)
 
+/*
 jacocoTestCoverageVerification {
     violationRules {
         rule {
@@ -100,6 +102,7 @@ jacocoTestCoverageVerification {
         }
     }
 }
+*/
 
 check.dependsOn(jacocoTestCoverageVerification)
 

@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -26,9 +22,18 @@ public class IndexSettingsTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         IndexSettings indexSettings = new IndexSettings();
 
-        BytesReference bytesRef = XContentHelper.toXContent(indexSettings, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            indexSettings,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexSettings deserializedIndexSettings = IndexSettings.fromXContent(parser);
         assertEquals(indexSettings, deserializedIndexSettings);
     }
@@ -48,11 +53,19 @@ public class IndexSettingsTests extends OpenSearchTestCase {
         indexSettings.setAdditionalProperty("knn", true);
         indexSettings.setAdditionalProperty("replication.type", "SEGMENT");
 
-        BytesReference bytesRef = XContentHelper.toXContent(indexSettings, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            indexSettings,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexSettings deserializedIndexSettings = IndexSettings.fromXContent(parser);
         assertEquals(indexSettings, deserializedIndexSettings);
     }
 }
-

@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.allocation.deciders;
 
 import org.opensearch.cluster.controller.enums.Decision;
@@ -6,17 +10,17 @@ import org.opensearch.cluster.controller.models.SearchUnit;
 
 /**
  * Interface for allocation decision making.
- * 
+ *
  * Each AllocationDecider implements a specific rule for determining
  * whether a shard can be allocated to a particular node.
- * 
+ *
  * Enables modular, configurable allocation policies.
  */
 public interface AllocationDecider {
-    
+
     /**
      * Determine if a shard can be allocated to a node.
-     * 
+     *
      * @param shardId the shard ID to allocate
      * @param node the target node
      * @param indexName the index name
@@ -24,17 +28,17 @@ public interface AllocationDecider {
      * @return allocation decision
      */
     Decision canAllocate(String shardId, SearchUnit node, String indexName, NodeRole targetRole);
-    
+
     /**
      * Get the name of this decider.
      */
     String getName();
-    
+
     /**
      * Check if this decider is enabled.
      */
     boolean isEnabled();
-    
+
     /**
      * Enable or disable this decider.
      */

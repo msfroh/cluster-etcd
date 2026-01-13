@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -12,18 +16,18 @@ import java.util.Map;
 /**
  * Represents the type mapping for an index.
  * Defines the structure and data types of documents in the index.
- * 
+ *
  * Based on OpenSearch's TypeMapping structure which includes field definitions,
  * dynamic settings, runtime fields, and metadata field configurations.
- * 
+ *
  * @see <a href="https://opensearch.org/docs/latest/field-types/">OpenSearch Field Types</a>
  */
 public class TypeMapping implements ToXContentObject {
-    
+
     /**
      * The properties (field definitions) for the index.
      * Maps field names to their type definitions.
-     * 
+     *
      * Example:
      * {
      *   "title": { "type": "text" },
@@ -32,88 +36,96 @@ public class TypeMapping implements ToXContentObject {
      * }
      */
     private Map<String, Object> properties = new HashMap<>();
-    
+
     /**
      * Dynamic mapping configuration.
      * Controls how new fields are handled when they are not explicitly defined.
-     * 
+     *
      * Values: "true" (default), "false", "strict"
      * - true: new fields are automatically added to the mapping
      * - false: new fields are ignored
      * - strict: throws an exception if new fields are encountered
      */
     private Object dynamic;
-    
+
     /**
      * Runtime fields that are evaluated at query time.
      * These fields are not indexed but computed on-the-fly.
      */
     private Map<String, Object> runtime;
-    
+
     /**
      * Source field configuration.
      * Controls how the original JSON document is stored.
      */
     private Map<String, Object> source;
-    
+
     /**
      * Routing configuration for the document.
      * Determines which shard a document is stored in.
      */
     private Map<String, Object> routing;
-    
+
     /**
      * Metadata field configuration.
      * Additional metadata about the document wrapped in "index_metadata" key.
      * Structure: { "index_metadata": { ... } }
      */
     private Map<String, Object> meta;
-    
+
     /**
      * Field names configuration.
      * Controls the _field_names field.
      */
     private Map<String, Object> fieldNames;
-    
+
     /**
      * Date detection configuration.
      * Controls automatic date detection in dynamic mapping.
      */
     private Boolean dateDetection;
-    
+
     /**
      * Numeric detection configuration.
      * Controls automatic numeric detection in dynamic mapping.
      */
     private Boolean numericDetection;
-    
+
     /**
      * Dynamic date formats.
      * Formats to use when detecting date fields dynamically.
      */
     private Object dynamicDateFormats;
-    
+
     /**
      * Dynamic templates for controlling how new fields are mapped.
      */
     private Object dynamicTemplates;
-    
-    public TypeMapping() {
-    }
-    
+
+    public TypeMapping() {}
+
     /**
      * Constructor with properties only (most common use case).
-     * 
+     *
      * @param properties the field properties/definitions
      */
     public TypeMapping(Map<String, Object> properties) {
         this.properties = properties != null ? properties : new HashMap<>();
     }
-    
-    public TypeMapping(Map<String, Object> properties, Object dynamic, Map<String, Object> runtime,
-                      Map<String, Object> source, Map<String, Object> routing, Map<String, Object> meta,
-                      Map<String, Object> fieldNames, Boolean dateDetection, Boolean numericDetection,
-                      Object dynamicDateFormats, Object dynamicTemplates) {
+
+    public TypeMapping(
+        Map<String, Object> properties,
+        Object dynamic,
+        Map<String, Object> runtime,
+        Map<String, Object> source,
+        Map<String, Object> routing,
+        Map<String, Object> meta,
+        Map<String, Object> fieldNames,
+        Boolean dateDetection,
+        Boolean numericDetection,
+        Object dynamicDateFormats,
+        Object dynamicTemplates
+    ) {
         this.properties = properties;
         this.dynamic = dynamic;
         this.runtime = runtime;
@@ -126,98 +138,98 @@ public class TypeMapping implements ToXContentObject {
         this.dynamicDateFormats = dynamicDateFormats;
         this.dynamicTemplates = dynamicTemplates;
     }
-    
+
     public Map<String, Object> getProperties() {
         return properties;
     }
-    
+
     public void setProperties(Map<String, Object> properties) {
         this.properties = properties;
     }
-    
+
     public Object getDynamic() {
         return dynamic;
     }
-    
+
     public void setDynamic(Object dynamic) {
         this.dynamic = dynamic;
     }
-    
+
     public Map<String, Object> getRuntime() {
         return runtime;
     }
-    
+
     public void setRuntime(Map<String, Object> runtime) {
         this.runtime = runtime;
     }
-    
+
     public Map<String, Object> getSource() {
         return source;
     }
-    
+
     public void setSource(Map<String, Object> source) {
         this.source = source;
     }
-    
+
     public Map<String, Object> getRouting() {
         return routing;
     }
-    
+
     public void setRouting(Map<String, Object> routing) {
         this.routing = routing;
     }
-    
+
     public Map<String, Object> getMeta() {
         return meta;
     }
-    
+
     public void setMeta(Map<String, Object> meta) {
         this.meta = meta;
     }
-    
+
     public Map<String, Object> getFieldNames() {
         return fieldNames;
     }
-    
+
     public void setFieldNames(Map<String, Object> fieldNames) {
         this.fieldNames = fieldNames;
     }
-    
+
     public Boolean getDateDetection() {
         return dateDetection;
     }
-    
+
     public void setDateDetection(Boolean dateDetection) {
         this.dateDetection = dateDetection;
     }
-    
+
     public Boolean getNumericDetection() {
         return numericDetection;
     }
-    
+
     public void setNumericDetection(Boolean numericDetection) {
         this.numericDetection = numericDetection;
     }
-    
+
     public Object getDynamicDateFormats() {
         return dynamicDateFormats;
     }
-    
+
     public void setDynamicDateFormats(Object dynamicDateFormats) {
         this.dynamicDateFormats = dynamicDateFormats;
     }
-    
+
     public Object getDynamicTemplates() {
         return dynamicTemplates;
     }
-    
+
     public void setDynamicTemplates(Object dynamicTemplates) {
         this.dynamicTemplates = dynamicTemplates;
     }
-    
+
     /**
      * Adds a field property to the mapping.
-     * 
+     *
      * @param fieldName the name of the field
      * @param fieldDefinition the field definition (type, analyzer, etc.)
      * @return this TypeMapping instance for method chaining
@@ -229,10 +241,10 @@ public class TypeMapping implements ToXContentObject {
         this.properties.put(fieldName, fieldDefinition);
         return this;
     }
-    
+
     /**
      * Adds a simple field with just a type.
-     * 
+     *
      * @param fieldName the name of the field
      * @param fieldType the type of the field (e.g., "text", "keyword", "integer", "date")
      * @return this TypeMapping instance for method chaining
@@ -246,7 +258,7 @@ public class TypeMapping implements ToXContentObject {
         this.properties.put(fieldName, fieldDef);
         return this;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -286,7 +298,7 @@ public class TypeMapping implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static TypeMapping fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -361,28 +373,39 @@ public class TypeMapping implements ToXContentObject {
         }
         return typeMapping;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         TypeMapping that = (TypeMapping) obj;
-        return java.util.Objects.equals(dateDetection, that.dateDetection) &&
-               java.util.Objects.equals(numericDetection, that.numericDetection) &&
-               java.util.Objects.equals(properties, that.properties) &&
-               java.util.Objects.equals(dynamic, that.dynamic) &&
-               java.util.Objects.equals(runtime, that.runtime) &&
-               java.util.Objects.equals(source, that.source) &&
-               java.util.Objects.equals(routing, that.routing) &&
-               java.util.Objects.equals(meta, that.meta) &&
-               java.util.Objects.equals(fieldNames, that.fieldNames) &&
-               java.util.Objects.equals(dynamicDateFormats, that.dynamicDateFormats) &&
-               java.util.Objects.equals(dynamicTemplates, that.dynamicTemplates);
+        return java.util.Objects.equals(dateDetection, that.dateDetection)
+            && java.util.Objects.equals(numericDetection, that.numericDetection)
+            && java.util.Objects.equals(properties, that.properties)
+            && java.util.Objects.equals(dynamic, that.dynamic)
+            && java.util.Objects.equals(runtime, that.runtime)
+            && java.util.Objects.equals(source, that.source)
+            && java.util.Objects.equals(routing, that.routing)
+            && java.util.Objects.equals(meta, that.meta)
+            && java.util.Objects.equals(fieldNames, that.fieldNames)
+            && java.util.Objects.equals(dynamicDateFormats, that.dynamicDateFormats)
+            && java.util.Objects.equals(dynamicTemplates, that.dynamicTemplates);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(properties, dynamic, runtime, source, routing, meta,
-                fieldNames, dateDetection, numericDetection, dynamicDateFormats, dynamicTemplates);
+        return java.util.Objects.hash(
+            properties,
+            dynamic,
+            runtime,
+            source,
+            routing,
+            meta,
+            fieldNames,
+            dateDetection,
+            numericDetection,
+            dynamicDateFormats,
+            dynamicTemplates
+        );
     }
 }

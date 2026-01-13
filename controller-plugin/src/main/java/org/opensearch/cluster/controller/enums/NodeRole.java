@@ -1,30 +1,36 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.enums;
+
+import java.util.Locale;
 
 /**
  * Node roles used by AllocationDeciders.
- * 
+ *
  * PRIMARY: ingest + search, REPLICA: search only, COORDINATOR: routing only
  */
 public enum NodeRole {
     PRIMARY("PRIMARY"),
-    REPLICA("SEARCH_REPLICA"), 
+    REPLICA("SEARCH_REPLICA"),
     COORDINATOR("COORDINATOR");
-    
+
     private final String value;
-    
+
     NodeRole(String value) {
         this.value = value;
     }
-    
+
     public String getValue() {
         return value;
     }
-    
+
     public static NodeRole fromString(String value) {
         if (value == null) return null;
-        
-        String trimmed = value.trim().toUpperCase();
-        
+
+        String trimmed = value.trim().toUpperCase(Locale.ROOT);
+
         // Handle common role name variations
         switch (trimmed) {
             case "PRIMARY":

@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -14,7 +18,7 @@ import java.util.Map;
  * Specifies which shards should be assigned to this node and their roles.
  */
 public class SearchUnitGoalState implements ToXContentObject {
-    
+
     /**
      * Data node local shards: index-name -> shard-id -> role
      * Role is a simple string: "PRIMARY" or "SEARCH_REPLICA"
@@ -22,45 +26,45 @@ public class SearchUnitGoalState implements ToXContentObject {
     private Map<String, Map<String, String>> localShards;
     private String lastUpdated;
     private long version;
-    
+
     public SearchUnitGoalState() {
         this.localShards = new HashMap<>();
         this.version = 1;
     }
-    
+
     public Map<String, Map<String, String>> getLocalShards() {
         return localShards;
     }
-    
+
     public void setLocalShards(Map<String, Map<String, String>> localShards) {
         this.localShards = localShards != null ? localShards : new HashMap<>();
     }
-    
+
     public String getLastUpdated() {
         return lastUpdated;
     }
-    
+
     public void setLastUpdated(String lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
-    
+
     public long getVersion() {
         return version;
     }
-    
+
     public void setVersion(long version) {
         this.version = version;
     }
-    
+
     // ========== UTILITY METHODS ==========
-    
+
     /**
      * Check if this goal state contains a specific index
      */
     public boolean hasIndex(String indexName) {
         return localShards != null && localShards.containsKey(indexName);
     }
-    
+
     /**
      * Get list of shard IDs for a specific index
      * @return List of shard IDs, or empty list if index not found
@@ -72,7 +76,7 @@ public class SearchUnitGoalState implements ToXContentObject {
         Map<String, String> shards = localShards.get(indexName);
         return shards != null ? new java.util.ArrayList<>(shards.keySet()) : new java.util.ArrayList<>();
     }
-    
+
     /**
      * Get the role for a specific shard in an index
      * @param indexName The index name
@@ -86,16 +90,20 @@ public class SearchUnitGoalState implements ToXContentObject {
         Map<String, String> shards = localShards.get(indexName);
         return shards != null ? shards.get(shardId) : null;
     }
-    
+
     @Override
     public String toString() {
-        return "SearchUnitGoalState{" +
-                "localShards=" + localShards +
-                ", lastUpdated='" + lastUpdated + '\'' +
-                ", version=" + version +
-                '}';
+        return "SearchUnitGoalState{"
+            + "localShards="
+            + localShards
+            + ", lastUpdated='"
+            + lastUpdated
+            + '\''
+            + ", version="
+            + version
+            + '}';
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -114,7 +122,7 @@ public class SearchUnitGoalState implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static SearchUnitGoalState fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -174,17 +182,17 @@ public class SearchUnitGoalState implements ToXContentObject {
         }
         return searchUnitGoalState;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         SearchUnitGoalState that = (SearchUnitGoalState) obj;
-        return version == that.version &&
-               java.util.Objects.equals(localShards, that.localShards) &&
-               java.util.Objects.equals(lastUpdated, that.lastUpdated);
+        return version == that.version
+            && java.util.Objects.equals(localShards, that.localShards)
+            && java.util.Objects.equals(lastUpdated, that.lastUpdated);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(localShards, lastUpdated, version);

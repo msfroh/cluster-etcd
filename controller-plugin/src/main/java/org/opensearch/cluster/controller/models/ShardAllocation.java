@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -9,67 +13,64 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * ShardAllocation represents planned shard allocation stored in etcd at:
- * <cluster-name>/indices/<index-name>/<shard_id>/planned-allocation
- */
+/// ShardAllocation represents planned shard allocation stored in etcd at:
+/// <cluster-name>/indices/<index-name>/<shard_id>/planned-allocation
 public class ShardAllocation implements ToXContentObject {
     private String shardId;
     private String indexName;
     private List<String> ingestSUs = new ArrayList<>();
     private List<String> searchSUs = new ArrayList<>();
     private long allocationTimestamp;
-    
-    public ShardAllocation() {
-    }
-    
+
+    public ShardAllocation() {}
+
     public ShardAllocation(String shardId, String indexName) {
         this.shardId = shardId;
         this.indexName = indexName;
         this.allocationTimestamp = System.currentTimeMillis();
     }
-    
+
     public String getShardId() {
         return shardId;
     }
-    
+
     public void setShardId(String shardId) {
         this.shardId = shardId;
     }
-    
+
     public String getIndexName() {
         return indexName;
     }
-    
+
     public void setIndexName(String indexName) {
         this.indexName = indexName;
     }
-    
+
     public List<String> getIngestSUs() {
         return ingestSUs;
     }
-    
+
     // Custom setters to maintain null safety
     public void setIngestSUs(List<String> ingestSUs) {
         this.ingestSUs = ingestSUs != null ? ingestSUs : new ArrayList<>();
     }
-    
+
     public List<String> getSearchSUs() {
         return searchSUs;
     }
-    
+
     public void setSearchSUs(List<String> searchSUs) {
         this.searchSUs = searchSUs != null ? searchSUs : new ArrayList<>();
     }
-    
+
     public long getAllocationTimestamp() {
         return allocationTimestamp;
     }
-    
+
     public void setAllocationTimestamp(long allocationTimestamp) {
         this.allocationTimestamp = allocationTimestamp;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -89,7 +90,7 @@ public class ShardAllocation implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static ShardAllocation fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -157,19 +158,19 @@ public class ShardAllocation implements ToXContentObject {
         }
         return shardAllocation;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         ShardAllocation that = (ShardAllocation) obj;
-        return allocationTimestamp == that.allocationTimestamp &&
-               java.util.Objects.equals(shardId, that.shardId) &&
-               java.util.Objects.equals(indexName, that.indexName) &&
-               java.util.Objects.equals(ingestSUs, that.ingestSUs) &&
-               java.util.Objects.equals(searchSUs, that.searchSUs);
+        return allocationTimestamp == that.allocationTimestamp
+            && java.util.Objects.equals(shardId, that.shardId)
+            && java.util.Objects.equals(indexName, that.indexName)
+            && java.util.Objects.equals(ingestSUs, that.ingestSUs)
+            && java.util.Objects.equals(searchSUs, that.searchSUs);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(shardId, indexName, ingestSUs, searchSUs, allocationTimestamp);

@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.core.common.ParsingException;
@@ -9,69 +13,68 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Index represents index configuration stored in etcd at:
- * <cluster-name>/indices/<index-name>/conf
- */
+import static java.time.ZoneOffset.UTC;
+
+/// Index represents index configuration stored in etcd at:
+/// <cluster-name>/indices/<index-name>/conf
 public class Index implements ToXContentObject {
     private String id = "";
     private String indexName;
-    private String createdAt = java.time.OffsetDateTime.now().toString(); // ISO timestamp for proper ordering
+    private String createdAt = java.time.OffsetDateTime.now(UTC).toString(); // ISO timestamp for proper ordering
     private IndexSettings settings;
     private TypeMapping mappings;
     private Map<String, Object> aliases = new HashMap<>();
-    
-    public Index() {
-    }
-    
+
+    public Index() {}
+
     public String getId() {
         return id;
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
-    
+
     public String getIndexName() {
         return indexName;
     }
-    
+
     public void setIndexName(String indexName) {
         this.indexName = indexName;
     }
-    
+
     public String getCreatedAt() {
         return createdAt;
     }
-    
+
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
-    
+
     public IndexSettings getSettings() {
         return settings;
     }
-    
+
     public void setSettings(IndexSettings settings) {
         this.settings = settings;
     }
-    
+
     public TypeMapping getMappings() {
         return mappings;
     }
-    
+
     public void setMappings(TypeMapping mappings) {
         this.mappings = mappings;
     }
-    
+
     public Map<String, Object> getAliases() {
         return aliases;
     }
-    
+
     public void setAliases(Map<String, Object> aliases) {
         this.aliases = aliases;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -98,7 +101,7 @@ public class Index implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static Index fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -150,20 +153,20 @@ public class Index implements ToXContentObject {
         }
         return index;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         Index index = (Index) obj;
-        return java.util.Objects.equals(id, index.id) &&
-               java.util.Objects.equals(indexName, index.indexName) &&
-               java.util.Objects.equals(createdAt, index.createdAt) &&
-               java.util.Objects.equals(settings, index.settings) &&
-               java.util.Objects.equals(mappings, index.mappings) &&
-               java.util.Objects.equals(aliases, index.aliases);
+        return java.util.Objects.equals(id, index.id)
+            && java.util.Objects.equals(indexName, index.indexName)
+            && java.util.Objects.equals(createdAt, index.createdAt)
+            && java.util.Objects.equals(settings, index.settings)
+            && java.util.Objects.equals(mappings, index.mappings)
+            && java.util.Objects.equals(aliases, index.aliases);
     }
-    
+
     @Override
     public int hashCode() {
         return java.util.Objects.hash(id, indexName, createdAt, settings, mappings, aliases);

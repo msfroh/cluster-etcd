@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.cluster.controller.config.Constants;
@@ -15,7 +19,7 @@ import java.util.Map;
  * SearchUnit entity representing a search unit in the cluster.
  */
 public class SearchUnit implements ToXContentObject {
-    
+
     private String id;
     private String name;
     private String clusterName;
@@ -28,11 +32,11 @@ public class SearchUnit implements ToXContentObject {
     private String stateAdmin; // "NORMAL", "DRAINED", etc.
     private HealthState statePulled; // GREEN, YELLOW, RED
     private Map<String, Object> nodeAttributes;
-    
+
     public SearchUnit() {
         this.nodeAttributes = new HashMap<>();
     }
-    
+
     public SearchUnit(String name, String role, String host) {
         this();
         this.name = name;
@@ -40,103 +44,103 @@ public class SearchUnit implements ToXContentObject {
         this.host = host;
         this.stateAdmin = Constants.ADMIN_STATE_NORMAL;
     }
-    
+
     public String getId() {
         return id;
     }
-    
+
     public void setId(String id) {
         this.id = id;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public String getClusterName() {
         return clusterName;
     }
-    
+
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
     }
-    
+
     public String getRole() {
         return role;
     }
-    
+
     public void setRole(String role) {
         this.role = role;
     }
-    
+
     public String getHost() {
         return host;
     }
-    
+
     public void setHost(String host) {
         this.host = host;
     }
-    
+
     public int getPortHttp() {
         return portHttp;
     }
-    
+
     public void setPortHttp(int portHttp) {
         this.portHttp = portHttp;
     }
-    
+
     public int getPortTransport() {
         return portTransport;
     }
-    
+
     public void setPortTransport(int portTransport) {
         this.portTransport = portTransport;
     }
-    
+
     public String getZone() {
         return zone;
     }
-    
+
     public void setZone(String zone) {
         this.zone = zone;
     }
-    
+
     public String getShardId() {
         return shardId;
     }
-    
+
     public void setShardId(String shardId) {
         this.shardId = shardId;
     }
-    
+
     public String getStateAdmin() {
         return stateAdmin;
     }
-    
+
     public void setStateAdmin(String stateAdmin) {
         this.stateAdmin = stateAdmin;
     }
-    
+
     public HealthState getStatePulled() {
         return statePulled;
     }
-    
+
     public void setStatePulled(HealthState statePulled) {
         this.statePulled = statePulled;
     }
-    
+
     public Map<String, Object> getNodeAttributes() {
         return nodeAttributes;
     }
-    
+
     public void setNodeAttributes(Map<String, Object> nodeAttributes) {
         this.nodeAttributes = nodeAttributes;
     }
-    
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -175,7 +179,7 @@ public class SearchUnit implements ToXContentObject {
         builder.endObject();
         return builder;
     }
-    
+
     public static SearchUnit fromXContent(XContentParser parser) throws IOException {
         if (parser.currentToken() == null) {
             parser.nextToken();
@@ -248,29 +252,41 @@ public class SearchUnit implements ToXContentObject {
         }
         return searchUnit;
     }
-    
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         SearchUnit that = (SearchUnit) obj;
-        return portHttp == that.portHttp &&
-               portTransport == that.portTransport &&
-               java.util.Objects.equals(id, that.id) &&
-               java.util.Objects.equals(name, that.name) &&
-               java.util.Objects.equals(clusterName, that.clusterName) &&
-               java.util.Objects.equals(role, that.role) &&
-               java.util.Objects.equals(host, that.host) &&
-               java.util.Objects.equals(zone, that.zone) &&
-               java.util.Objects.equals(shardId, that.shardId) &&
-               java.util.Objects.equals(stateAdmin, that.stateAdmin) &&
-               statePulled == that.statePulled &&
-               java.util.Objects.equals(nodeAttributes, that.nodeAttributes);
+        return portHttp == that.portHttp
+            && portTransport == that.portTransport
+            && java.util.Objects.equals(id, that.id)
+            && java.util.Objects.equals(name, that.name)
+            && java.util.Objects.equals(clusterName, that.clusterName)
+            && java.util.Objects.equals(role, that.role)
+            && java.util.Objects.equals(host, that.host)
+            && java.util.Objects.equals(zone, that.zone)
+            && java.util.Objects.equals(shardId, that.shardId)
+            && java.util.Objects.equals(stateAdmin, that.stateAdmin)
+            && statePulled == that.statePulled
+            && java.util.Objects.equals(nodeAttributes, that.nodeAttributes);
     }
-    
+
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(id, name, clusterName, role, host, portHttp, portTransport,
-                zone, shardId, stateAdmin, statePulled, nodeAttributes);
+        return java.util.Objects.hash(
+            id,
+            name,
+            clusterName,
+            role,
+            host,
+            portHttp,
+            portTransport,
+            zone,
+            shardId,
+            stateAdmin,
+            statePulled,
+            nodeAttributes
+        );
     }
 }

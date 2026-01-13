@@ -1,3 +1,7 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 package org.opensearch.cluster.controller.allocation;
 
 /**
@@ -9,7 +13,7 @@ public enum AllocationStrategy {
      * Allocates exactly the number of replicas defined in the index config.
      */
     RESPECT_REPLICA_COUNT,
-    
+
     /**
      * Uses all available eligible nodes for allocation.
      * Ignores replica count and allocates to all nodes that pass decider checks.

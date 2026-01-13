@@ -1,11 +1,7 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
  */
-
 package org.opensearch.cluster.controller.models;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
@@ -23,9 +19,18 @@ public class IndexMetadataTests extends OpenSearchTestCase {
     public void testSerializationEmpty() throws IOException {
         IndexMetadata indexMetadata = new IndexMetadata();
 
-        BytesReference bytesRef = XContentHelper.toXContent(indexMetadata, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            indexMetadata,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexMetadata deserializedIndexMetadata = IndexMetadata.fromXContent(parser);
         assertEquals(indexMetadata, deserializedIndexMetadata);
     }
@@ -33,9 +38,18 @@ public class IndexMetadataTests extends OpenSearchTestCase {
     public void testAliasConfigSerializationEmpty() throws IOException {
         IndexMetadata.AliasConfig aliasConfig = new IndexMetadata.AliasConfig();
 
-        BytesReference bytesRef = XContentHelper.toXContent(aliasConfig, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            aliasConfig,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexMetadata.AliasConfig deserializedAliasConfig = IndexMetadata.AliasConfig.fromXContent(parser);
         assertEquals(aliasConfig, deserializedAliasConfig);
     }
@@ -43,9 +57,18 @@ public class IndexMetadataTests extends OpenSearchTestCase {
     public void testBatchIngestionSourceSerializationEmpty() throws IOException {
         IndexMetadata.BatchIngestionSource batchIngestionSource = new IndexMetadata.BatchIngestionSource();
 
-        BytesReference bytesRef = XContentHelper.toXContent(batchIngestionSource, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            batchIngestionSource,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexMetadata.BatchIngestionSource deserializedBatchIngestionSource = IndexMetadata.BatchIngestionSource.fromXContent(parser);
         assertEquals(batchIngestionSource, deserializedBatchIngestionSource);
     }
@@ -53,11 +76,19 @@ public class IndexMetadataTests extends OpenSearchTestCase {
     public void testLiveIngestionSourceSerializationEmpty() throws IOException {
         IndexMetadata.LiveIngestionSource liveIngestionSource = new IndexMetadata.LiveIngestionSource();
 
-        BytesReference bytesRef = XContentHelper.toXContent(liveIngestionSource, JsonXContent.jsonXContent.mediaType(), ToXContent.EMPTY_PARAMS, false);
+        BytesReference bytesRef = XContentHelper.toXContent(
+            liveIngestionSource,
+            JsonXContent.jsonXContent.mediaType(),
+            ToXContent.EMPTY_PARAMS,
+            false
+        );
         byte[] bytes = BytesReference.toBytes(bytesRef);
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY,
+            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+            bytes
+        );
         IndexMetadata.LiveIngestionSource deserializedLiveIngestionSource = IndexMetadata.LiveIngestionSource.fromXContent(parser);
         assertEquals(liveIngestionSource, deserializedLiveIngestionSource);
     }
 }
-
